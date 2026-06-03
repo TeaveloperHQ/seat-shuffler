@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SeatShuffler.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="600"
+             x:Class="SeatShuffler.Views.InfoView"
+             x:DataType="vm:InfoViewModel">
+
+    <Design.DataContext>
+        <vm:InfoViewModel/>
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Margin="20" Spacing="14" MaxWidth="720" HorizontalAlignment="Left">
+            <TextBlock Text="{Binding AppTitle}" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Text="{Binding AppDescription}" Foreground="Gray" TextWrapping="Wrap"/>
+
+            <Border Background="#F4F5F7" CornerRadius="8" Padding="14" Margin="0,6,0,0">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="데이터 저장 위치" FontWeight="SemiBold" FontSize="15"/>
+                    <TextBlock Text="명단과 확정 기록은 아래 폴더에 저장됩니다. 프로그램(.exe)을 옮기거나 새 버전으로 교체해도 데이터는 유지됩니다."
+                               Foreground="#666" TextWrapping="Wrap" FontSize="12"/>
+
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="폴더" Foreground="#888" FontSize="12"/>
+                        <SelectableTextBlock Text="{Binding DataDir}" FontFamily="Consolas,Menlo,monospace"
+                                             TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="명단 파일" Foreground="#888" FontSize="12"/>
+                        <SelectableTextBlock Text="{Binding RosterFile}" FontFamily="Consolas,Menlo,monospace"
+                                             TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="기록 파일" Foreground="#888" FontSize="12"/>
+                        <SelectableTextBlock Text="{Binding HistoryFile}" FontFamily="Consolas,Menlo,monospace"
+                                             TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <Button Content="저장 폴더 열기" Command="{Binding OpenDataFolderCommand}"
+                            Margin="0,4,0,0" Padding="14,7"/>
+                    <TextBlock Text="{Binding Counts}" Foreground="#666" FontSize="12" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>

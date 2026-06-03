@@ -11,6 +11,11 @@ public interface IClipboardService
     Task<string?> GetTextAsync();
 }
 
+public interface IFolderService
+{
+    Task OpenFolderAsync(string path);
+}
+
 public sealed record PickedFile(Stream Stream, string Name);
 
 public interface IDialogService
@@ -22,9 +27,17 @@ public interface IDialogService
 /// 클립보드/파일선택은 TopLevel이 필요하므로, View가 attach된 뒤
 /// <see cref="Owner"/>를 주입한다. ViewModel은 인터페이스만 의존(MVVM 유지).
 /// </summary>
-public sealed class UiServices : IClipboardService, IDialogService
+public sealed class UiServices : IClipboardService, IDialogService, IFolderService
 {
     public TopLevel? Owner { get; set; }
+
+    public async Task OpenFolderAsync(string path)
+    {
+        var launcher = Owner?.Launcher;
+        if (launcher is null) return;
+        Directory.CreateDirectory(path);
+        await launcher.LaunchDirectoryInfoAsync(new DirectoryInfo(path));
+    }
 
     public async Task<string?> GetTextAsync()
     {

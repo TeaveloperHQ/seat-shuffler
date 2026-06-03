@@ -14,6 +14,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public RosterViewModel Roster { get; }
     public AssignmentViewModel Assignment { get; }
     public HistoryViewModel History { get; }
+    public InfoViewModel Info { get; }
 
     [ObservableProperty] private int _selectedTabIndex;
 
@@ -24,6 +25,7 @@ public partial class MainWindowViewModel : ViewModelBase
         Roster = new RosterViewModel(state, Ui, Ui);
         Assignment = new AssignmentViewModel(state, new SeatAssignmentService());
         History = new HistoryViewModel(state);
+        Info = new InfoViewModel(state, Ui);
     }
 
     // 디자인타임용

@@ -24,6 +24,9 @@
         <TabItem Header="기록">
             <ContentControl Content="{Binding History}"/>
         </TabItem>
+        <TabItem Header="정보">
+            <ContentControl Content="{Binding Info}"/>
+        </TabItem>
     </TabControl>
 
 </Window>
