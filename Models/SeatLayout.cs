@@ -22,8 +22,10 @@ public sealed class SeatLayout
 
     public int SeatCount => Positions.Count;
 
-    public static SeatLayout Build(SeatGridConfig config)
+    public static SeatLayout Build(SeatGridConfig config, IReadOnlySet<SeatPosition>? empties = null)
     {
+        bool IsEmpty(SeatPosition p) => empties is not null && empties.Contains(p);
+
         var positions = new List<SeatPosition>();
         var pairs = new List<PairGroup>();
 
@@ -31,22 +33,25 @@ public sealed class SeatLayout
         {
             for (int r = 0; r < config.Rows; r++)
             {
-                // 한 행을 좌→우로 훑으며 2칸씩 묶는다. 홀수 잔여는 단독석.
+                // 한 행을 좌→우로 훑으며 2칸씩 묶는다. 홀수 잔여 또는 짝 한쪽이 빈자리면 단독석.
                 for (int c = 0; c < config.Cols; c += 2)
                 {
                     var a = new SeatPosition(s, r, c);
-                    positions.Add(a);
+                    SeatPosition? b = (c + 1 < config.Cols) ? new SeatPosition(s, r, c + 1) : null;
 
-                    if (c + 1 < config.Cols)
-                    {
-                        var b = new SeatPosition(s, r, c + 1);
-                        positions.Add(b);
-                        pairs.Add(new PairGroup { A = a, B = b });
-                    }
-                    else
-                    {
-                        pairs.Add(new PairGroup { A = a, B = null });
-                    }
+                    bool aEmpty = IsEmpty(a);
+                    bool bEmpty = b is not null && IsEmpty(b.Value);
+
+                    if (!aEmpty) positions.Add(a);
+                    if (b is not null && !bEmpty) positions.Add(b.Value);
+
+                    if (!aEmpty && b is not null && !bEmpty)
+                        pairs.Add(new PairGroup { A = a, B = b });          // 정상 짝
+                    else if (!aEmpty && (b is null || bEmpty))
+                        pairs.Add(new PairGroup { A = a, B = null });        // 단독석(왼쪽만)
+                    else if (aEmpty && b is not null && !bEmpty)
+                        pairs.Add(new PairGroup { A = b.Value, B = null });  // 단독석(오른쪽만)
+                    // 둘 다 비면 그룹 없음
                 }
             }
         }

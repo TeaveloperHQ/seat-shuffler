@@ -12,6 +12,7 @@ public static class AppPaths
 
     public static string RosterFile => Path.Combine(DataDir, "roster.json");
     public static string HistoryFile => Path.Combine(DataDir, "history.json");
+    public static string ConstraintsFile => Path.Combine(DataDir, "constraints.json");
 
     public static void EnsureDir() => Directory.CreateDirectory(DataDir);
 }

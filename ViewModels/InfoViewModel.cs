@@ -16,6 +16,7 @@ public partial class InfoViewModel : ViewModelBase
     public string DataDir => AppPaths.DataDir;
     public string RosterFile => AppPaths.RosterFile;
     public string HistoryFile => AppPaths.HistoryFile;
+    public string ConstraintsFile => AppPaths.ConstraintsFile;
 
     public string Counts => $"학생 {_state.Roster.Count}명 · 확정 기록 {_state.History.Count}건";
 

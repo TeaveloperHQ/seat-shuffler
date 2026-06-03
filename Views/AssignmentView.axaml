@@ -84,19 +84,23 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="vm:SeatSlotViewModel">
-                                                    <Border Background="{Binding Background}"
+                                                    <Button Command="{Binding ToggleCommand}"
+                                                            CommandParameter="{Binding Position}"
+                                                            Background="{Binding Background}"
                                                             BorderBrush="{Binding Border}" BorderThickness="1"
                                                             CornerRadius="8" Margin="{Binding Margin}"
-                                                            Width="92" Height="58">
+                                                            Width="92" Height="58" Padding="0" Cursor="Hand"
+                                                            ToolTip.Tip="클릭하면 빈자리로 지정/해제">
                                                         <StackPanel VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Name}" FontSize="15"
                                                                        FontWeight="SemiBold"
+                                                                       Foreground="{Binding Foreground}"
                                                                        HorizontalAlignment="Center"/>
                                                             <TextBlock Text="{Binding SubText}" FontSize="10"
-                                                                       Foreground="#777"
+                                                                       Foreground="{Binding Foreground}"
                                                                        HorizontalAlignment="Center"/>
                                                         </StackPanel>
-                                                    </Border>
+                                                    </Button>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>

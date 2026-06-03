@@ -1,0 +1,107 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SeatShuffler.ViewModels"
+             xmlns:models="using:SeatShuffler.Models"
+             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="600"
+             x:Class="SeatShuffler.Views.ConstraintsView"
+             x:DataType="vm:ConstraintsViewModel">
+
+    <Design.DataContext>
+        <vm:ConstraintsViewModel/>
+    </Design.DataContext>
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="StudentItem" DataType="models:Student">
+            <TextBlock Text="{Binding Name}"/>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Margin="14" Spacing="14">
+
+            <TextBlock Text="제약 조건" FontSize="18" FontWeight="Bold"/>
+            <TextBlock Text="여기서 정한 조건은 저장되어 다음 실행에도 유지되며, 배정 시 우선 적용됩니다. (충돌 시 성별 짝부터 자동 완화)"
+                       Foreground="Gray" FontSize="12" TextWrapping="Wrap"/>
+
+            <!-- 짝 금지 -->
+            <Border Background="#F4F5F7" CornerRadius="8" Padding="14">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="짝 금지 — 서로 짝이 되면 안 되는 학생" FontWeight="SemiBold"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding ForbiddenA}"
+                                  ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 A"/>
+                        <TextBlock Text="✕" VerticalAlignment="Center" FontWeight="Bold"/>
+                        <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding ForbiddenB}"
+                                  ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 B"/>
+                        <Button Content="추가" Command="{Binding AddForbiddenCommand}"/>
+                        <Button Content="선택 삭제" Command="{Binding RemoveForbiddenCommand}"/>
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding ForbiddenRows}" SelectedItem="{Binding SelectedForbidden}"
+                             MaxHeight="120" Background="White">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="vm:PairRow">
+                                <TextBlock Text="{Binding Display}"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <!-- 짝 필수 -->
+            <Border Background="#F4F5F7" CornerRadius="8" Padding="14">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="짝 필수 — 반드시 짝이 되어야 하는 학생" FontWeight="SemiBold"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding RequiredA}"
+                                  ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 A"/>
+                        <TextBlock Text="♥" VerticalAlignment="Center" FontWeight="Bold"/>
+                        <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding RequiredB}"
+                                  ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 B"/>
+                        <Button Content="추가" Command="{Binding AddRequiredCommand}"/>
+                        <Button Content="선택 삭제" Command="{Binding RemoveRequiredCommand}"/>
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding RequiredRows}" SelectedItem="{Binding SelectedRequired}"
+                             MaxHeight="120" Background="White">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="vm:PairRow">
+                                <TextBlock Text="{Binding Display}"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <!-- 앞자리 -->
+            <Border Background="#F4F5F7" CornerRadius="8" Padding="14">
+                <StackPanel Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="앞자리 — 앞쪽에 앉아야 하는 학생" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Text="앞쪽" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                        <NumericUpDown Value="{Binding FrontRowCount}" Minimum="1" Maximum="12"
+                                       Increment="1" FormatString="0" Width="100"/>
+                        <TextBlock Text="행까지" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding FrontStudent}"
+                                  ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생"/>
+                        <Button Content="추가" Command="{Binding AddFrontCommand}"/>
+                        <Button Content="선택 삭제" Command="{Binding RemoveFrontCommand}"/>
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding FrontRows}" SelectedItem="{Binding SelectedFront}"
+                             MaxHeight="120" Background="White">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="vm:FrontRow">
+                                <TextBlock Text="{Binding Display}"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="{Binding Status}" Foreground="Gray" FontSize="12"/>
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>

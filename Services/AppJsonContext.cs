@@ -27,6 +27,14 @@ public sealed class HistoryDocument
     public List<ConfirmedRecord> Records { get; set; } = new();
 }
 
+/// <summary>constraints.json 루트 문서 — 제약 + 배정 설정.</summary>
+public sealed class ConstraintsDocument
+{
+    public int SchemaVersion { get; set; } = 1;
+    public SeatConstraints Constraints { get; set; } = new();
+    public AssignmentSettings Settings { get; set; } = new();
+}
+
 /// <summary>
 /// System.Text.Json source-gen 컨텍스트.
 /// 트리밍을 켜더라도 안전하도록 영속 타입을 등록한다.
@@ -36,6 +44,7 @@ public sealed class HistoryDocument
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(RosterDocument))]
 [JsonSerializable(typeof(HistoryDocument))]
+[JsonSerializable(typeof(ConstraintsDocument))]
 public partial class AppJsonContext : JsonSerializerContext
 {
 }

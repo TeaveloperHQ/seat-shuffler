@@ -12,6 +12,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public UiServices Ui { get; }
 
     public RosterViewModel Roster { get; }
+    public ConstraintsViewModel Constraints { get; }
     public AssignmentViewModel Assignment { get; }
     public HistoryViewModel History { get; }
     public InfoViewModel Info { get; }
@@ -23,6 +24,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _state = state;
         Ui = new UiServices();
         Roster = new RosterViewModel(state, Ui, Ui);
+        Constraints = new ConstraintsViewModel(state);
         Assignment = new AssignmentViewModel(state, new SeatAssignmentService());
         History = new HistoryViewModel(state);
         Info = new InfoViewModel(state, Ui);
