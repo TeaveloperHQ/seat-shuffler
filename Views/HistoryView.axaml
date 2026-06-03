@@ -1,0 +1,93 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SeatShuffler.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="600"
+             x:Class="SeatShuffler.Views.HistoryView"
+             x:DataType="vm:HistoryViewModel">
+
+    <Design.DataContext>
+        <vm:HistoryViewModel/>
+    </Design.DataContext>
+
+    <Grid ColumnDefinitions="380,*" Margin="12">
+        <!-- 기록 목록 -->
+        <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto" Margin="0,0,10,0">
+            <WrapPanel Grid.Row="0" Margin="0,0,0,8">
+                <Button Content="삭제" Command="{Binding DeleteSelectedCommand}" Margin="0,0,6,0"/>
+                <Button Content="변경 저장" Command="{Binding SaveChangesCommand}" Margin="0,0,6,0"/>
+                <Button Content="전체 비우기" Command="{Binding ClearAllCommand}"/>
+            </WrapPanel>
+
+            <DataGrid Grid.Row="1" ItemsSource="{Binding Records}"
+                      SelectedItem="{Binding SelectedRecord}"
+                      AutoGenerateColumns="False" HeadersVisibility="Column"
+                      GridLinesVisibility="Horizontal" BorderBrush="#DDD" BorderThickness="1"
+                      IsReadOnly="False">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="라벨" Width="*" Binding="{Binding Label}"/>
+                    <DataGridTextColumn Header="구성" Width="Auto" IsReadOnly="True"
+                                        Binding="{Binding ConfigSummary}"/>
+                    <DataGridTextColumn Header="인원" Width="60" IsReadOnly="True"
+                                        Binding="{Binding StudentCount}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <TextBlock Grid.Row="2" Text="{Binding Status}" Foreground="Gray"
+                       FontSize="12" Margin="2,8,0,0"/>
+        </Grid>
+
+        <!-- 선택 기록 미리보기 -->
+        <Border Grid.Column="1" Background="#F4F5F7" CornerRadius="8" Padding="12">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding PreviewView}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:SeatSectionViewModel">
+                            <StackPanel Margin="10,0">
+                                <TextBlock Text="{Binding Title}" HorizontalAlignment="Center"
+                                           Foreground="#888" FontSize="12" Margin="0,0,0,4"/>
+                                <ItemsControl ItemsSource="{Binding Rows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="vm:SeatRowViewModel">
+                                            <ItemsControl ItemsSource="{Binding Seats}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="vm:SeatSlotViewModel">
+                                                        <Border Background="{Binding Background}"
+                                                                BorderBrush="{Binding Border}" BorderThickness="1"
+                                                                CornerRadius="8" Margin="{Binding Margin}"
+                                                                Width="84" Height="52">
+                                                            <StackPanel VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Name}" FontSize="14"
+                                                                           FontWeight="SemiBold"
+                                                                           HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="{Binding SubText}" FontSize="10"
+                                                                           Foreground="#777"
+                                                                           HorizontalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+
+</UserControl>

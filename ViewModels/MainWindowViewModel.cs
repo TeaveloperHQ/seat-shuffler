@@ -1,62 +1,33 @@
-using System;
-using System.Collections.ObjectModel;
-using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using SeatShuffler.Models;
+using SeatShuffler.Services;
 
 namespace SeatShuffler.ViewModels;
 
+/// <summary>3탭(명단·배정·기록)을 호스팅하는 셸. 공유 AppState를 자식 VM에 주입.</summary>
 public partial class MainWindowViewModel : ViewModelBase
 {
-    private static readonly char[] Separators = { '\n', '\r', ',', '\t' };
-    private readonly Random _random = new();
+    private readonly AppState _state;
 
-    [ObservableProperty]
-    private string _namesText =
-        "김민준\n이서연\n박도윤\n최지우\n정하준\n강서아\n조시우\n윤하은\n장지호\n임수아\n한예준\n오지민";
+    /// <summary>클립보드/파일선택용. View가 attach될 때 Owner(TopLevel)를 주입한다.</summary>
+    public UiServices Ui { get; }
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Columns))]
-    private decimal _columnCount = 4;
+    public RosterViewModel Roster { get; }
+    public AssignmentViewModel Assignment { get; }
+    public HistoryViewModel History { get; }
 
-    [ObservableProperty]
-    private string _status = "이름을 입력하고 '자리 섞기'를 누르세요.";
+    [ObservableProperty] private int _selectedTabIndex;
 
-    /// <summary>UniformGrid 열 수 (정수). ColumnCount 변경 시 함께 갱신.</summary>
-    public int Columns => Math.Max(1, (int)ColumnCount);
-
-    public ObservableCollection<Seat> Seats { get; } = new();
-
-    [RelayCommand]
-    private void Shuffle()
+    public MainWindowViewModel(AppState state)
     {
-        var names = NamesText
-            .Split(Separators, StringSplitOptions.RemoveEmptyEntries)
-            .Select(n => n.Trim())
-            .Where(n => n.Length > 0)
-            .ToList();
-
-        if (names.Count == 0)
-        {
-            Status = "학생 이름이 없습니다.";
-            Seats.Clear();
-            return;
-        }
-
-        // Fisher-Yates 셔플
-        for (int i = names.Count - 1; i > 0; i--)
-        {
-            int j = _random.Next(i + 1);
-            (names[i], names[j]) = (names[j], names[i]);
-        }
-
-        Seats.Clear();
-        for (int i = 0; i < names.Count; i++)
-        {
-            Seats.Add(new Seat { Number = i + 1, Name = names[i] });
-        }
-
-        Status = $"{names.Count}명 배치 완료 · {Columns}열";
+        _state = state;
+        Ui = new UiServices();
+        Roster = new RosterViewModel(state, Ui, Ui);
+        Assignment = new AssignmentViewModel(state, new SeatAssignmentService());
+        History = new HistoryViewModel(state);
     }
+
+    // 디자인타임용
+    public MainWindowViewModel() : this(new AppState()) { }
+
+    public void Save() => _state.Save();
 }

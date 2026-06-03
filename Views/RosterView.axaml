@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SeatShuffler.ViewModels"
+             xmlns:models="using:SeatShuffler.Models"
+             xmlns:conv="using:SeatShuffler.Converters"
+             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="600"
+             x:Class="SeatShuffler.Views.RosterView"
+             x:DataType="vm:RosterViewModel">
+
+    <Design.DataContext>
+        <vm:RosterViewModel/>
+    </Design.DataContext>
+
+    <UserControl.Resources>
+        <conv:GenderKoreanConverter x:Key="GenderKorean"/>
+    </UserControl.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="12">
+        <!-- 툴바 -->
+        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+            <Button Content="행 추가" Command="{Binding AddRowCommand}" Margin="0,0,6,0"/>
+            <Button Content="삭제" Command="{Binding DeleteSelectedCommand}" Margin="0,0,6,0"/>
+            <Button Content="붙여넣기" Command="{Binding PasteFromClipboardCommand}" Margin="0,0,6,0"/>
+            <Button Content="엑셀/CSV 업로드" Command="{Binding ImportFileCommand}" Margin="0,0,6,0"/>
+            <Button Content="전체 비우기" Command="{Binding ClearAllCommand}" Margin="0,0,12,0"/>
+            <CheckBox Content="가져올 때 기존 명단 교체" IsChecked="{Binding ReplaceOnImport}"
+                      VerticalAlignment="Center"/>
+        </WrapPanel>
+
+        <!-- 명단 표 -->
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Students}"
+                  SelectedItem="{Binding SelectedStudent}"
+                  AutoGenerateColumns="False" CanUserResizeColumns="True"
+                  GridLinesVisibility="All" HeadersVisibility="Column"
+                  BorderBrush="#DDD" BorderThickness="1">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="학번" Width="120"
+                                    Binding="{Binding StudentNumber}"/>
+                <DataGridTextColumn Header="이름" Width="*"
+                                    Binding="{Binding Name}"/>
+                <DataGridTemplateColumn Header="성별" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate DataType="models:Student">
+                            <TextBlock Text="{Binding Gender, Converter={StaticResource GenderKorean}}"
+                                       VerticalAlignment="Center" Margin="8,0"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate DataType="models:Student">
+                            <ComboBox ItemsSource="{x:Static vm:RosterViewModel.GenderValues}"
+                                      SelectedItem="{Binding Gender}" HorizontalAlignment="Stretch">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate DataType="models:Gender">
+                                        <TextBlock Text="{Binding Converter={StaticResource GenderKorean}}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock Grid.Row="2" Text="{Binding Status}" Foreground="Gray"
+                   FontSize="12" Margin="2,8,0,0" TextWrapping="Wrap"/>
+    </Grid>
+
+</UserControl>

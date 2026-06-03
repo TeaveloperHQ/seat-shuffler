@@ -3,68 +3,27 @@
         xmlns:vm="using:SeatShuffler.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="560"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="640"
         x:Class="SeatShuffler.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Width="900" Height="560" MinWidth="640" MinHeight="420"
+        Width="1000" Height="640" MinWidth="760" MinHeight="500"
         Title="자리바꾸기">
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid ColumnDefinitions="280,*" Margin="16">
-        <!-- 왼쪽: 입력 패널 -->
-        <StackPanel Grid.Column="0" Spacing="10">
-            <TextBlock Text="학생 이름" FontWeight="Bold" FontSize="16"/>
-            <TextBlock Text="한 줄에 한 명 (쉼표/탭 구분도 됨)" Foreground="Gray" FontSize="12"/>
-            <TextBox Text="{Binding NamesText}" AcceptsReturn="True" Height="300"
-                     TextWrapping="Wrap" Watermark="이름 입력"
-                     VerticalContentAlignment="Top"/>
-
-            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <TextBlock Text="열 수" VerticalAlignment="Center"/>
-                <NumericUpDown Value="{Binding ColumnCount}" Minimum="1" Maximum="12"
-                               Increment="1" FormatString="0" Width="130"/>
-            </StackPanel>
-
-            <Button Content="🎲  자리 섞기" Command="{Binding ShuffleCommand}"
-                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                    Padding="0,12" FontSize="15" FontWeight="SemiBold"/>
-
-            <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Foreground="Gray" FontSize="12"/>
-        </StackPanel>
-
-        <!-- 오른쪽: 자리 배치 -->
-        <Border Grid.Column="1" Margin="16,0,0,0" Background="#F4F5F7"
-                CornerRadius="10" Padding="12">
-            <ScrollViewer>
-                <ItemsControl ItemsSource="{Binding Seats}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="{Binding Columns}"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Margin="6" Background="White" CornerRadius="10"
-                                    BoxShadow="0 1 4 0 #22000000" Padding="10"
-                                    MinWidth="96" MinHeight="72">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Number, StringFormat='{}{0}번'}"
-                                               FontSize="11" Foreground="#999"
-                                               HorizontalAlignment="Center"/>
-                                    <TextBlock Text="{Binding Name}" FontSize="19"
-                                               FontWeight="SemiBold" Margin="0,4,0,0"
-                                               HorizontalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Border>
-    </Grid>
+    <TabControl SelectedIndex="{Binding SelectedTabIndex}" Margin="8">
+        <TabItem Header="학생 명단">
+            <ContentControl Content="{Binding Roster}"/>
+        </TabItem>
+        <TabItem Header="배정">
+            <ContentControl Content="{Binding Assignment}"/>
+        </TabItem>
+        <TabItem Header="기록">
+            <ContentControl Content="{Binding History}"/>
+        </TabItem>
+    </TabControl>
 
 </Window>

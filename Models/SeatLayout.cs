@@ -1,0 +1,56 @@
+using System.Collections.Generic;
+
+namespace SeatShuffler.Models;
+
+/// <summary>짝 그룹: 좌석 1~2칸. B가 null이면 단독석(IsSingle).</summary>
+public sealed class PairGroup
+{
+    public required SeatPosition A { get; init; }
+    public SeatPosition? B { get; init; }
+    public bool IsSingle => B is null;
+}
+
+/// <summary>
+/// <see cref="SeatGridConfig"/>에서 계산되는 좌석 구조(비영속).
+/// 좌석 순서와 짝 그룹(같은 행 인접 2칸씩, 홀수 잔여는 단독석)을 담는다.
+/// </summary>
+public sealed class SeatLayout
+{
+    public required SeatGridConfig Config { get; init; }
+    public required IReadOnlyList<SeatPosition> Positions { get; init; }
+    public required IReadOnlyList<PairGroup> Pairs { get; init; }
+
+    public int SeatCount => Positions.Count;
+
+    public static SeatLayout Build(SeatGridConfig config)
+    {
+        var positions = new List<SeatPosition>();
+        var pairs = new List<PairGroup>();
+
+        for (int s = 0; s < config.Sections; s++)
+        {
+            for (int r = 0; r < config.Rows; r++)
+            {
+                // 한 행을 좌→우로 훑으며 2칸씩 묶는다. 홀수 잔여는 단독석.
+                for (int c = 0; c < config.Cols; c += 2)
+                {
+                    var a = new SeatPosition(s, r, c);
+                    positions.Add(a);
+
+                    if (c + 1 < config.Cols)
+                    {
+                        var b = new SeatPosition(s, r, c + 1);
+                        positions.Add(b);
+                        pairs.Add(new PairGroup { A = a, B = b });
+                    }
+                    else
+                    {
+                        pairs.Add(new PairGroup { A = a, B = null });
+                    }
+                }
+            }
+        }
+
+        return new SeatLayout { Config = config, Positions = positions, Pairs = pairs };
+    }
+}

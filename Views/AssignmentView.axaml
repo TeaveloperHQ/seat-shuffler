@@ -1,0 +1,116 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:SeatShuffler.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="600"
+             x:Class="SeatShuffler.Views.AssignmentView"
+             x:DataType="vm:AssignmentViewModel">
+
+    <Design.DataContext>
+        <vm:AssignmentViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="12">
+        <!-- 설정 바 -->
+        <Border Grid.Row="0" Background="#F4F5F7" CornerRadius="8" Padding="12" Margin="0,0,0,8">
+            <WrapPanel Orientation="Horizontal">
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,16,4" VerticalAlignment="Center">
+                    <TextBlock Text="분단" VerticalAlignment="Center"/>
+                    <NumericUpDown Value="{Binding Sections}" Minimum="1" Maximum="8" Increment="1"
+                                   FormatString="0" Width="100"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,16,4" VerticalAlignment="Center">
+                    <TextBlock Text="행" VerticalAlignment="Center"/>
+                    <NumericUpDown Value="{Binding Rows}" Minimum="1" Maximum="12" Increment="1"
+                                   FormatString="0" Width="100"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,16,4" VerticalAlignment="Center">
+                    <TextBlock Text="열" VerticalAlignment="Center"/>
+                    <NumericUpDown Value="{Binding Cols}" Minimum="1" Maximum="8" Increment="1"
+                                   FormatString="0" Width="100"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,16,4" VerticalAlignment="Center">
+                    <RadioButton Content="동성짝" GroupName="pair" IsChecked="{Binding PairSame}"
+                                 IsEnabled="{Binding PairOptionsEnabled}"/>
+                    <RadioButton Content="이성짝" GroupName="pair" IsChecked="{Binding PairOpposite}"
+                                 IsEnabled="{Binding PairOptionsEnabled}"/>
+                </StackPanel>
+                <StackPanel Orientation="Vertical" Margin="0,0,16,0" VerticalAlignment="Center">
+                    <CheckBox Content="이전과 같은 자리 회피" IsChecked="{Binding AvoidSameSeat}"/>
+                    <CheckBox Content="이전과 같은 짝 회피" IsChecked="{Binding AvoidSamePair}"/>
+                </StackPanel>
+                <Button Content="배정" Command="{Binding AssignCommand}"
+                        Padding="20,8" FontWeight="SemiBold" Margin="0,0,6,0"/>
+                <Button Content="확정" Command="{Binding ConfirmCommand}"
+                        Padding="20,8" FontWeight="SemiBold"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- 완화 배너 -->
+        <Border Grid.Row="1" Background="#FFF4E5" BorderBrush="#F0B400" BorderThickness="1"
+                CornerRadius="6" Padding="10,6" Margin="0,0,0,8"
+                IsVisible="{Binding HasRelaxation}">
+            <TextBlock Text="{Binding RelaxationBanner}" Foreground="#8A5A00" TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- 칠판 표시(앞쪽) -->
+        <Border Grid.Row="2" Background="#2E3B2E" CornerRadius="4" Padding="6" Margin="0,0,0,10"
+                HorizontalAlignment="Center" Width="240">
+            <TextBlock Text="칠판 (앞)" Foreground="#CFE8CF" HorizontalAlignment="Center" FontSize="12"/>
+        </Border>
+
+        <!-- 좌석 그리드 -->
+        <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding SectionsView}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:SeatSectionViewModel">
+                        <StackPanel Margin="10,0">
+                            <TextBlock Text="{Binding Title}" HorizontalAlignment="Center"
+                                       Foreground="#888" FontSize="12" Margin="0,0,0,4"/>
+                            <ItemsControl ItemsSource="{Binding Rows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="vm:SeatRowViewModel">
+                                        <ItemsControl ItemsSource="{Binding Seats}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="vm:SeatSlotViewModel">
+                                                    <Border Background="{Binding Background}"
+                                                            BorderBrush="{Binding Border}" BorderThickness="1"
+                                                            CornerRadius="8" Margin="{Binding Margin}"
+                                                            Width="92" Height="58">
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Name}" FontSize="15"
+                                                                       FontWeight="SemiBold"
+                                                                       HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding SubText}" FontSize="10"
+                                                                       Foreground="#777"
+                                                                       HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="4" Text="{Binding Status}" Foreground="Gray"
+                   FontSize="12" Margin="2,8,0,0" TextWrapping="Wrap"/>
+    </Grid>
+
+</UserControl>
