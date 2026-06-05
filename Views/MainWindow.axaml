@@ -18,6 +18,9 @@
         <TabItem Header="학생 명단">
             <ContentControl Content="{Binding Roster}"/>
         </TabItem>
+        <TabItem Header="좌석 설정">
+            <ContentControl Content="{Binding SeatSetup}"/>
+        </TabItem>
         <TabItem Header="제약">
             <ContentControl Content="{Binding Constraints}"/>
         </TabItem>

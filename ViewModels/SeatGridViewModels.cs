@@ -47,12 +47,14 @@ public static class SeatGridBuilder
 {
     private static readonly IBrush BlockedBg = new SolidColorBrush(Color.Parse("#3A3A3A"));
     private static readonly IBrush BlockedFg = new SolidColorBrush(Color.Parse("#CCCCCC"));
+    private static readonly IBrush DefaultBorder = new SolidColorBrush(Color.Parse("#E0E0E0"));
 
     public static List<SeatSectionViewModel> Build(
         SeatGridConfig config,
         Func<SeatPosition, Student?> lookup,
         IReadOnlySet<SeatPosition>? emptySeats = null,
-        ICommand? toggleCommand = null)
+        ICommand? toggleCommand = null,
+        IReadOnlyDictionary<SeatPosition, Gender>? genderSeats = null)
     {
         var sections = new List<SeatSectionViewModel>();
         for (int s = 0; s < config.Sections; s++)
@@ -79,16 +81,34 @@ public static class SeatGridBuilder
                     }
 
                     var student = lookup(pos);
-                    bool vacant = student is null;
+                    Gender? zone = null;
+                    if (genderSeats is not null && genderSeats.TryGetValue(pos, out var zg)) zone = zg;
+
+                    if (student is not null)
+                    {
+                        row.Seats.Add(new SeatSlotViewModel
+                        {
+                            Position = pos,
+                            Name = student.Name,
+                            SubText = string.IsNullOrWhiteSpace(student.StudentNumber)
+                                ? student.Gender.ToKorean() : student.StudentNumber,
+                            Background = SeatSlotViewModel.BrushFor(student.Gender, false),
+                            Border = zone is null ? DefaultBorder : SeatSlotViewModel.BrushFor(zone.Value, false),
+                            Foreground = Brushes.Black,
+                            Margin = margin,
+                            ToggleCommand = toggleCommand,
+                        });
+                        continue;
+                    }
+
+                    // 빈 좌석 — 남녀 자리 지정이면 존으로 표시.
                     row.Seats.Add(new SeatSlotViewModel
                     {
                         Position = pos,
-                        Name = vacant ? "빈자리" : student!.Name,
-                        SubText = vacant ? "" : (string.IsNullOrWhiteSpace(student!.StudentNumber)
-                            ? student.Gender.ToKorean()
-                            : student.StudentNumber),
-                        Background = SeatSlotViewModel.BrushFor(student?.Gender ?? Gender.Unspecified, vacant),
-                        Foreground = vacant ? new SolidColorBrush(Color.Parse("#AAAAAA")) : Brushes.Black,
+                        Name = zone switch { Gender.Male => "남자리", Gender.Female => "여자리", _ => "빈자리" },
+                        SubText = "",
+                        Background = SeatSlotViewModel.BrushFor(zone ?? Gender.Unspecified, zone is null),
+                        Foreground = zone is null ? new SolidColorBrush(Color.Parse("#AAAAAA")) : new SolidColorBrush(Color.Parse("#555555")),
                         Margin = margin,
                         ToggleCommand = toggleCommand,
                     });

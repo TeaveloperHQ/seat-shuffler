@@ -29,7 +29,8 @@ public sealed class SeatAssignmentService
     private const int NodeBudget = 400_000;
 
     private readonly record struct Constraints(
-        bool Gender, bool SameSeat, bool SamePair, bool FrontRow, bool Forbidden, bool Required);
+        bool Gender, bool SameSeat, bool SamePair, bool FrontRow, bool GenderSeat,
+        bool Forbidden, bool Required);
 
     public AssignmentResult Assign(
         IReadOnlyList<Student> roster,
@@ -38,6 +39,7 @@ public sealed class SeatAssignmentService
         IReadOnlyList<ConfirmedRecord> history,
         SeatConstraints constraints,
         IReadOnlySet<SeatPosition> emptySeats,
+        IReadOnlyDictionary<SeatPosition, Gender> genderSeats,
         long seed)
     {
         var students = roster.Where(s => s.HasName).ToList();
@@ -62,8 +64,15 @@ public sealed class SeatAssignmentService
         var frontRowKeys = constraints.FrontRowStudents.Where(keys.Contains).ToHashSet();
         int frontRowCount = Math.Max(1, constraints.FrontRowCount);
 
+        // 현재 좌석 범위 내의 남녀 자리만 채택.
+        var seatPositions = layout.Positions.ToHashSet();
+        var effectiveGenderSeats = genderSeats
+            .Where(kv => seatPositions.Contains(kv.Key) && kv.Value != Gender.Unspecified)
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+
         bool hasGender = config.HasPairs;
         bool hasFront = frontRowKeys.Count > 0;
+        bool hasGenderSeat = effectiveGenderSeats.Count > 0;
         bool hasForbidden = manualForbidden.Count > 0;
         bool hasRequired = requiredPartner.Count > 0;
 
@@ -72,6 +81,7 @@ public sealed class SeatAssignmentService
             SameSeat: options.AvoidSameSeat,
             SamePair: options.AvoidSamePair,
             FrontRow: hasFront,
+            GenderSeat: hasGenderSeat,
             Forbidden: hasForbidden,
             Required: hasRequired);
 
@@ -79,7 +89,7 @@ public sealed class SeatAssignmentService
         {
             var solver = new Solver(students, layout, level, config.PairMode,
                 forbiddenSeat, historyPair, manualForbidden, requiredPartner,
-                frontRowKeys, frontRowCount, seed, NodeBudget);
+                frontRowKeys, frontRowCount, effectiveGenderSeats, seed, NodeBudget);
 
             if (solver.Solve(out var seatToKey))
             {
@@ -89,6 +99,7 @@ public sealed class SeatAssignmentService
                     RelaxedSameSeat = options.AvoidSameSeat && !level.SameSeat,
                     RelaxedSamePair = options.AvoidSamePair && !level.SamePair,
                     RelaxedFrontRow = hasFront && !level.FrontRow,
+                    RelaxedGenderSeat = hasGenderSeat && !level.GenderSeat,
                     RelaxedForbiddenPair = hasForbidden && !level.Forbidden,
                     RelaxedRequiredPair = hasRequired && !level.Required,
                 };
@@ -112,11 +123,12 @@ public sealed class SeatAssignmentService
     {
         var levels = new List<Constraints> { top };
         var c = top;
-        // 완화 순서: 성별 → 같은자리 → 같은짝 → 앞자리 → 짝금지 → 짝필수
+        // 완화 순서: 성별짝 → 같은자리 → 같은짝 → 앞자리 → 남녀자리 → 짝금지 → 짝필수
         if (c.Gender) { c = c with { Gender = false }; levels.Add(c); }
         if (c.SameSeat) { c = c with { SameSeat = false }; levels.Add(c); }
         if (c.SamePair) { c = c with { SamePair = false }; levels.Add(c); }
         if (c.FrontRow) { c = c with { FrontRow = false }; levels.Add(c); }
+        if (c.GenderSeat) { c = c with { GenderSeat = false }; levels.Add(c); }
         if (c.Forbidden) { c = c with { Forbidden = false }; levels.Add(c); }
         if (c.Required) { c = c with { Required = false }; levels.Add(c); }
         return levels;
@@ -181,6 +193,7 @@ public sealed class SeatAssignmentService
         private readonly Dictionary<string, string> _requiredPartner;
         private readonly HashSet<string> _frontRowKeys;
         private readonly int _frontRowCount;
+        private readonly Dictionary<SeatPosition, Gender> _genderSeats;
         private readonly int _budget;
         private readonly Dictionary<SeatPosition, string> _placed = new();
         private int _nodes;
@@ -190,7 +203,8 @@ public sealed class SeatAssignmentService
             IReadOnlyList<Student> students, SeatLayout layout, Constraints c, PairMode pairMode,
             HashSet<(string, string)> forbiddenSeat, HashSet<string> historyPair,
             HashSet<string> manualForbidden, Dictionary<string, string> requiredPartner,
-            HashSet<string> frontRowKeys, int frontRowCount, long seed, int budget)
+            HashSet<string> frontRowKeys, int frontRowCount,
+            Dictionary<SeatPosition, Gender> genderSeats, long seed, int budget)
         {
             var rng = new Random(unchecked((int)seed));
             // 제약이 강한 학생(앞자리·짝필수)을 먼저 배치하도록 우선순위 정렬 →
@@ -214,6 +228,7 @@ public sealed class SeatAssignmentService
             _requiredPartner = requiredPartner;
             _frontRowKeys = frontRowKeys;
             _frontRowCount = frontRowCount;
+            _genderSeats = genderSeats;
             _budget = budget;
         }
 
@@ -274,11 +289,12 @@ public sealed class SeatAssignmentService
             return Backtrack(gi + 1); // 짝 전체 비우고 진행
         }
 
-        // 일반 좌석 배치 가능 여부(같은자리 회피 + 앞자리).
+        // 일반 좌석 배치 가능 여부(같은자리 회피 + 앞자리 + 남녀 자리).
         private bool CanSeat(Student s, SeatPosition pos)
         {
             if (_c.SameSeat && _forbiddenSeat.Contains((s.Key, pos.Key))) return false;
             if (_c.FrontRow && _frontRowKeys.Contains(s.Key) && pos.Row >= _frontRowCount) return false;
+            if (_c.GenderSeat && _genderSeats.TryGetValue(pos, out var g) && s.Gender != g) return false;
             return true;
         }
 

@@ -14,16 +14,8 @@ public partial class AssignmentViewModel : ViewModelBase
     private readonly AppState _state;
     private readonly SeatAssignmentService _service;
     private readonly Random _rng = new();
-    private readonly HashSet<SeatPosition> _emptySeats = new();
     private AssignmentCandidate? _candidate;
     private bool _loading;
-
-    [ObservableProperty] private decimal _sections = 3;
-    [ObservableProperty] private decimal _rows = 4;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PairOptionsEnabled))]
-    private decimal _cols = 2;
 
     [ObservableProperty] private bool _pairSame = true;
     [ObservableProperty] private bool _pairOpposite;
@@ -39,7 +31,7 @@ public partial class AssignmentViewModel : ViewModelBase
 
     public ObservableCollection<SeatSectionViewModel> SectionsView { get; } = new();
 
-    public bool PairOptionsEnabled => (int)Cols >= 2;
+    public bool PairOptionsEnabled => _state.Settings.Cols >= 2;
     public bool HasRelaxation => !string.IsNullOrEmpty(RelaxationBanner);
 
     public AssignmentViewModel(AppState state, SeatAssignmentService service)
@@ -57,17 +49,10 @@ public partial class AssignmentViewModel : ViewModelBase
     {
         _loading = true;
         var s = _state.Settings;
-        Sections = s.Sections;
-        Rows = s.Rows;
-        Cols = s.Cols;
         PairOpposite = s.PairMode == PairMode.OppositeGender;
         PairSame = !PairOpposite;
         AvoidSameSeat = s.AvoidSameSeat;
         AvoidSamePair = s.AvoidSamePair;
-        _emptySeats.Clear();
-        foreach (var p in s.EmptySeats)
-            _emptySeats.Add(p.ToPosition());
-        PruneEmptySeats();
         _loading = false;
     }
 
@@ -75,15 +60,9 @@ public partial class AssignmentViewModel : ViewModelBase
     {
         if (_loading) return;
         var s = _state.Settings;
-        s.Sections = (int)Sections;
-        s.Rows = (int)Rows;
-        s.Cols = (int)Cols;
         s.PairMode = PairOpposite ? PairMode.OppositeGender : PairMode.SameGender;
         s.AvoidSameSeat = AvoidSameSeat;
         s.AvoidSamePair = AvoidSamePair;
-        s.EmptySeats = _emptySeats
-            .Select(p => new SeatPosDto { Section = p.Section, Row = p.Row, Col = p.Col })
-            .ToList();
         _state.SaveConstraints();
     }
 
@@ -93,46 +72,19 @@ public partial class AssignmentViewModel : ViewModelBase
     partial void OnAvoidSamePairChanged(bool value) => SaveSettings();
     partial void OnRelaxationBannerChanged(string value) => OnPropertyChanged(nameof(HasRelaxation));
 
-    partial void OnSectionsChanged(decimal value) => OnGridShapeChanged();
-    partial void OnRowsChanged(decimal value) => OnGridShapeChanged();
-    partial void OnColsChanged(decimal value) => OnGridShapeChanged();
-
-    private void OnGridShapeChanged()
-    {
-        if (_loading) return;
-        PruneEmptySeats();
-        _candidate = null;        // 구조가 바뀌면 이전 배정 무효
-        CanConfirm = false;
-        RelaxationBanner = "";
-        SaveSettings();
-        RenderPreview();
-    }
-
-    private void PruneEmptySeats()
-    {
-        int s = Math.Max(1, (int)Sections), r = Math.Max(1, (int)Rows), c = Math.Max(1, (int)Cols);
-        _emptySeats.RemoveWhere(p => p.Section >= s || p.Row >= r || p.Col >= c);
-    }
-
     private SeatGridConfig BuildConfig() => new()
     {
-        Sections = Math.Max(1, (int)Sections),
-        Rows = Math.Max(1, (int)Rows),
-        Cols = Math.Max(1, (int)Cols),
+        Sections = Math.Max(1, _state.Settings.Sections),
+        Rows = Math.Max(1, _state.Settings.Rows),
+        Cols = Math.Max(1, _state.Settings.Cols),
         PairMode = PairOpposite ? PairMode.OppositeGender : PairMode.SameGender,
     };
 
-    [RelayCommand]
-    private void ToggleEmpty(SeatPosition pos)
-    {
-        if (!_emptySeats.Remove(pos))
-            _emptySeats.Add(pos);
-        _candidate = null;
-        CanConfirm = false;
-        RelaxationBanner = "";
-        SaveSettings();
-        RenderPreview();
-    }
+    private HashSet<SeatPosition> EmptySeats() =>
+        _state.Settings.EmptySeats.Select(p => p.ToPosition()).ToHashSet();
+
+    private Dictionary<SeatPosition, Gender> GenderSeats() =>
+        _state.Settings.GenderSeats.ToDictionary(g => g.ToPosition(), g => g.Gender);
 
     [RelayCommand]
     private void Assign()
@@ -143,7 +95,7 @@ public partial class AssignmentViewModel : ViewModelBase
 
         var result = _service.Assign(
             _state.Roster.ToList(), config, options, _state.History.ToList(),
-            _state.Constraints, _emptySeats, seed);
+            _state.Constraints, EmptySeats(), GenderSeats(), seed);
 
         if (!result.Ok)
         {
@@ -160,8 +112,7 @@ public partial class AssignmentViewModel : ViewModelBase
 
         int placed = _candidate.SeatToStudentKey.Count;
         Status = $"{placed}명 배정됨 · 분단{config.Sections}·행{config.Rows}·열{config.Cols}" +
-                 (config.HasPairs ? $" · {(config.PairMode == PairMode.OppositeGender ? "이성짝" : "동성짝")}" : " · 단독석") +
-                 (_emptySeats.Count > 0 ? $" · 빈자리 {_emptySeats.Count}" : "");
+                 (config.HasPairs ? $" · {(config.PairMode == PairMode.OppositeGender ? "이성짝" : "동성짝")}" : " · 단독석");
         RelaxationBanner = _candidate.Relaxation.Summary;
         CanConfirm = true;
     }
@@ -202,11 +153,12 @@ public partial class AssignmentViewModel : ViewModelBase
     {
         Student? None(SeatPosition _) => null;
         SectionsView.Clear();
-        foreach (var sec in SeatGridBuilder.Build(BuildConfig(), None, _emptySeats, ToggleEmptyCommand))
+        foreach (var sec in SeatGridBuilder.Build(BuildConfig(), None, EmptySeats(), null, GenderSeats()))
             SectionsView.Add(sec);
 
-        int avail = BuildConfig().TotalSeats - _emptySeats.Count;
-        Status = $"좌석 {avail}석 (빈자리 {_emptySeats.Count}) · '배정'을 누르세요. 좌석을 클릭하면 빈자리로 지정됩니다.";
+        var cfg = BuildConfig();
+        int avail = cfg.TotalSeats - EmptySeats().Count;
+        Status = $"좌석 {avail}석 · '배정'을 누르세요. (좌석 구조는 '좌석 설정' 탭에서 변경)";
     }
 
     private void RenderCandidate(AssignmentCandidate candidate)
@@ -217,7 +169,18 @@ public partial class AssignmentViewModel : ViewModelBase
                 ? s : null;
 
         SectionsView.Clear();
-        foreach (var sec in SeatGridBuilder.Build(candidate.Config, Lookup, _emptySeats, ToggleEmptyCommand))
+        foreach (var sec in SeatGridBuilder.Build(candidate.Config, Lookup, EmptySeats(), null, GenderSeats()))
             SectionsView.Add(sec);
+    }
+
+    /// <summary>탭 진입 시 호출 — 좌석 설정이 바뀌었을 수 있어 다시 반영.</summary>
+    public void Refresh()
+    {
+        LoadFromSettings();
+        _candidate = null;
+        CanConfirm = false;
+        RelaxationBanner = "";
+        OnPropertyChanged(nameof(PairOptionsEnabled));
+        RenderPreview();
     }
 }
