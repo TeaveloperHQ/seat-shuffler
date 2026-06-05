@@ -21,6 +21,13 @@ public sealed class FrontRow
     public string Display { get; init; } = "";
 }
 
+/// <summary>거리 단계 콤보 항목.</summary>
+public sealed class LevelOption
+{
+    public int Value { get; init; }
+    public string Label { get; init; } = "";
+}
+
 /// <summary>제약 카드 1개(설정 + 드래그 우선순위). Owner로 부모 VM 데이터에 바인딩.</summary>
 public sealed class ConstraintCardViewModel
 {
@@ -51,6 +58,21 @@ public partial class ConstraintsViewModel : ViewModelBase
     [ObservableProperty] private Student? _requiredA;
     [ObservableProperty] private Student? _requiredB;
     [ObservableProperty] private Student? _frontStudent;
+
+    // 거리 단계 선택지
+    public LevelOption[] ApartLevels { get; } =
+    {
+        new() { Value = DistanceLevels.ApartDeskmate, Label = "같은 짝만 금지" },
+        new() { Value = DistanceLevels.ApartNeighbors, Label = "팔방 금지(옆·앞뒤·대각)" },
+        new() { Value = DistanceLevels.ApartFar, Label = "멀리(2칸 이상)" },
+    };
+    public LevelOption[] CloseLevels { get; } =
+    {
+        new() { Value = DistanceLevels.CloseNear, Label = "가까이(팔방 안)" },
+        new() { Value = DistanceLevels.CloseDeskmate, Label = "반드시 짝" },
+    };
+    [ObservableProperty] private LevelOption? _selectedApartLevel;
+    [ObservableProperty] private LevelOption? _selectedCloseLevel;
 
     [ObservableProperty] private PairRow? _selectedForbidden;
     [ObservableProperty] private PairRow? _selectedRequired;
@@ -167,6 +189,8 @@ public partial class ConstraintsViewModel : ViewModelBase
     {
         _state = state;
         _frontRowCount = C.FrontRowCount;
+        _selectedApartLevel = ApartLevels[1]; // 기본: 팔방 금지
+        _selectedCloseLevel = CloseLevels[1]; // 기본: 반드시 짝
         _state.Roster.CollectionChanged += (_, _) => Rebuild();
         Rebuild();
         RebuildCards();
@@ -192,11 +216,11 @@ public partial class ConstraintsViewModel : ViewModelBase
     {
         ForbiddenRows.Clear();
         foreach (var p in C.ForbiddenPairs)
-            ForbiddenRows.Add(new PairRow { Pair = p, Display = $"{NameOf(p.A)}  ✕  {NameOf(p.B)}" });
+            ForbiddenRows.Add(new PairRow { Pair = p, Display = $"{NameOf(p.A)}  ↔  {NameOf(p.B)}   ·   {DistanceLevels.ApartLabel(p.Level)}" });
 
         RequiredRows.Clear();
         foreach (var p in C.RequiredPairs)
-            RequiredRows.Add(new PairRow { Pair = p, Display = $"{NameOf(p.A)}  ♥  {NameOf(p.B)}" });
+            RequiredRows.Add(new PairRow { Pair = p, Display = $"{NameOf(p.A)}  ↔  {NameOf(p.B)}   ·   {DistanceLevels.CloseLabel(p.Level)}" });
 
         FrontRows.Clear();
         foreach (var k in C.FrontRowStudents)
@@ -205,13 +229,14 @@ public partial class ConstraintsViewModel : ViewModelBase
         UpdateStatus();
     }
 
-    private bool AddPair(System.Collections.Generic.List<StudentPair> list, Student? a, Student? b)
+    private bool AddPair(System.Collections.Generic.List<StudentPair> list, Student? a, Student? b, int level)
     {
         if (a is null || b is null) { Status = "두 학생을 모두 선택하세요."; return false; }
         if (a.Key == b.Key) { Status = "서로 다른 학생을 선택하세요."; return false; }
-        var pair = new StudentPair { A = a.Key, B = b.Key };
-        if (list.Any(x => x.Key == pair.Key)) { Status = "이미 등록된 짝입니다."; return false; }
-        list.Add(pair);
+        var key = new StudentPair { A = a.Key, B = b.Key }.Key;
+        var existing = list.FirstOrDefault(x => x.Key == key);
+        if (existing is not null) existing.Level = level;            // 이미 있으면 단계만 갱신
+        else list.Add(new StudentPair { A = a.Key, B = b.Key, Level = level });
         _state.SaveConstraints();
         return true;
     }
@@ -219,7 +244,8 @@ public partial class ConstraintsViewModel : ViewModelBase
     [RelayCommand]
     private void AddForbidden()
     {
-        if (AddPair(C.ForbiddenPairs, ForbiddenA, ForbiddenB)) { ForbiddenA = ForbiddenB = null; Rebuild(); }
+        var lvl = SelectedApartLevel?.Value ?? DistanceLevels.ApartDeskmate;
+        if (AddPair(C.ForbiddenPairs, ForbiddenA, ForbiddenB, lvl)) { ForbiddenA = ForbiddenB = null; Rebuild(); }
     }
 
     [RelayCommand]
@@ -234,7 +260,8 @@ public partial class ConstraintsViewModel : ViewModelBase
     [RelayCommand]
     private void AddRequired()
     {
-        if (AddPair(C.RequiredPairs, RequiredA, RequiredB)) { RequiredA = RequiredB = null; Rebuild(); }
+        var lvl = SelectedCloseLevel?.Value ?? DistanceLevels.CloseDeskmate;
+        if (AddPair(C.RequiredPairs, RequiredA, RequiredB, lvl)) { RequiredA = RequiredB = null; Rebuild(); }
     }
 
     [RelayCommand]

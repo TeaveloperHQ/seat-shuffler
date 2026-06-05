@@ -59,8 +59,34 @@ public sealed class SeatAssignmentService
 
         var forbiddenSeat = BuildForbiddenSeat(history);
         var historyPair = BuildForbiddenPair(history);
-        var manualForbidden = constraints.ForbiddenPairs.Select(p => p.Key).ToHashSet();
-        var requiredPartner = BuildRequiredPartners(constraints.RequiredPairs, keys);
+
+        // 가급적 멀리: '같은 짝만 금지'는 짝 그룹 단위, 그 이상은 거리(Chebyshev) 단위.
+        var forbiddenDeskmate = new HashSet<string>();
+        var apartDist = new Dictionary<string, List<(string Partner, int MinDist)>>();
+        foreach (var p in constraints.ForbiddenPairs)
+        {
+            if (p.A == p.B || !keys.Contains(p.A) || !keys.Contains(p.B)) continue;
+            int d = DistanceLevels.ApartMinDistance(p.Level);
+            if (d < 0) forbiddenDeskmate.Add(PairKey(p.A, p.B));
+            else { AddDist(apartDist, p.A, p.B, d); AddDist(apartDist, p.B, p.A, d); }
+        }
+
+        // 가급적 가깝게: '반드시 짝'은 짝 그룹 단위, '가까이'는 거리 단위.
+        var requiredPartner = new Dictionary<string, string>();
+        var closeDist = new Dictionary<string, List<(string Partner, int MaxDist)>>();
+        foreach (var p in constraints.RequiredPairs)
+        {
+            if (p.A == p.B || !keys.Contains(p.A) || !keys.Contains(p.B)) continue;
+            int d = DistanceLevels.CloseMaxDistance(p.Level);
+            if (d < 0)
+            {
+                if (requiredPartner.ContainsKey(p.A) || requiredPartner.ContainsKey(p.B)) continue;
+                requiredPartner[p.A] = p.B;
+                requiredPartner[p.B] = p.A;
+            }
+            else { AddDist(closeDist, p.A, p.B, d); AddDist(closeDist, p.B, p.A, d); }
+        }
+
         var frontRowKeys = constraints.FrontRowStudents.Where(keys.Contains).ToHashSet();
         int frontRowCount = Math.Max(1, constraints.FrontRowCount);
 
@@ -73,8 +99,8 @@ public sealed class SeatAssignmentService
         bool hasGender = config.HasPairs;
         bool hasFront = frontRowKeys.Count > 0;
         bool hasGenderSeat = effectiveGenderSeats.Count > 0;
-        bool hasForbidden = manualForbidden.Count > 0;
-        bool hasRequired = requiredPartner.Count > 0;
+        bool hasForbidden = forbiddenDeskmate.Count > 0 || apartDist.Count > 0;
+        bool hasRequired = requiredPartner.Count > 0 || closeDist.Count > 0;
 
         var top = new Constraints(
             Gender: hasGender,
@@ -88,8 +114,8 @@ public sealed class SeatAssignmentService
         foreach (var level in BuildLadder(top, constraints.EffectivePriority()))
         {
             var solver = new Solver(students, layout, level, config.PairMode,
-                forbiddenSeat, historyPair, manualForbidden, requiredPartner,
-                frontRowKeys, frontRowCount, effectiveGenderSeats, seed, NodeBudget);
+                forbiddenSeat, historyPair, forbiddenDeskmate, apartDist, requiredPartner, closeDist,
+                frontRowKeys, frontRowCount, effectiveGenderSeats, config.Cols, seed, NodeBudget);
 
             if (solver.Solve(out var seatToKey))
             {
@@ -158,20 +184,11 @@ public sealed class SeatAssignmentService
         _ => c,
     };
 
-    private static Dictionary<string, string> BuildRequiredPartners(
-        IEnumerable<StudentPair> required, HashSet<string> rosterKeys)
+    private static void AddDist(
+        Dictionary<string, List<(string Partner, int Dist)>> map, string a, string b, int dist)
     {
-        var map = new Dictionary<string, string>();
-        foreach (var p in required)
-        {
-            if (p.A == p.B) continue;
-            if (!rosterKeys.Contains(p.A) || !rosterKeys.Contains(p.B)) continue; // 둘 다 명단에 있어야
-            // 한 학생이 여러 필수 짝을 가지면 충돌 → 첫 지정만 채택.
-            if (map.ContainsKey(p.A) || map.ContainsKey(p.B)) continue;
-            map[p.A] = p.B;
-            map[p.B] = p.A;
-        }
-        return map;
+        if (!map.TryGetValue(a, out var list)) { list = new(); map[a] = list; }
+        list.Add((b, dist));
     }
 
     private static HashSet<(string, string)> BuildForbiddenSeat(IReadOnlyList<ConfirmedRecord> history)
@@ -213,27 +230,32 @@ public sealed class SeatAssignmentService
         private readonly PairMode _pairMode;
         private readonly HashSet<(string, string)> _forbiddenSeat;
         private readonly HashSet<string> _historyPair;
-        private readonly HashSet<string> _manualForbidden;
+        private readonly HashSet<string> _forbiddenDeskmate;
+        private readonly Dictionary<string, List<(string Partner, int MinDist)>> _apartDist;
         private readonly Dictionary<string, string> _requiredPartner;
+        private readonly Dictionary<string, List<(string Partner, int MaxDist)>> _closeDist;
         private readonly HashSet<string> _frontRowKeys;
         private readonly int _frontRowCount;
         private readonly Dictionary<SeatPosition, Gender> _genderSeats;
+        private readonly int _cols;
         private readonly int _budget;
         private readonly Dictionary<SeatPosition, string> _placed = new();
+        private readonly Dictionary<string, SeatPosition> _posOf = new();
         private int _nodes;
         private int _remaining;
 
         public Solver(
             IReadOnlyList<Student> students, SeatLayout layout, Constraints c, PairMode pairMode,
             HashSet<(string, string)> forbiddenSeat, HashSet<string> historyPair,
-            HashSet<string> manualForbidden, Dictionary<string, string> requiredPartner,
+            HashSet<string> forbiddenDeskmate, Dictionary<string, List<(string, int)>> apartDist,
+            Dictionary<string, string> requiredPartner, Dictionary<string, List<(string, int)>> closeDist,
             HashSet<string> frontRowKeys, int frontRowCount,
-            Dictionary<SeatPosition, Gender> genderSeats, long seed, int budget)
+            Dictionary<SeatPosition, Gender> genderSeats, int cols, long seed, int budget)
         {
             var rng = new Random(unchecked((int)seed));
-            // 제약이 강한 학생(앞자리·짝필수)을 먼저 배치하도록 우선순위 정렬 →
-            // 비제약 학생이 한정 좌석을 선점해 생기는 깊은 백트래킹을 줄인다.
-            bool Priority(Student s) => frontRowKeys.Contains(s.Key) || requiredPartner.ContainsKey(s.Key);
+            // 제약이 강한 학생(앞자리·짝필수·거리제약)을 먼저 배치 → 깊은 백트래킹 감소.
+            bool Priority(Student s) => frontRowKeys.Contains(s.Key) || requiredPartner.ContainsKey(s.Key)
+                || apartDist.ContainsKey(s.Key) || closeDist.ContainsKey(s.Key);
             var shuffled = students.ToArray();
             Shuffle(shuffled, rng);
             _students = shuffled.Where(Priority).Concat(shuffled.Where(s => !Priority(s))).ToArray();
@@ -248,11 +270,14 @@ public sealed class SeatAssignmentService
             _pairMode = pairMode;
             _forbiddenSeat = forbiddenSeat;
             _historyPair = historyPair;
-            _manualForbidden = manualForbidden;
+            _forbiddenDeskmate = forbiddenDeskmate;
+            _apartDist = apartDist;
             _requiredPartner = requiredPartner;
+            _closeDist = closeDist;
             _frontRowKeys = frontRowKeys;
             _frontRowCount = frontRowCount;
             _genderSeats = genderSeats;
+            _cols = cols;
             _budget = budget;
         }
 
@@ -313,13 +338,31 @@ public sealed class SeatAssignmentService
             return Backtrack(gi + 1); // 짝 전체 비우고 진행
         }
 
-        // 일반 좌석 배치 가능 여부(같은자리 회피 + 앞자리 + 남녀 자리).
+        // 일반 좌석 배치 가능 여부(같은자리 회피 + 앞자리 + 남녀 자리 + 거리 제약).
         private bool CanSeat(Student s, SeatPosition pos)
         {
             if (_c.SameSeat && _forbiddenSeat.Contains((s.Key, pos.Key))) return false;
             if (_c.FrontRow && _frontRowKeys.Contains(s.Key) && pos.Row >= _frontRowCount) return false;
             if (_c.GenderSeat && _genderSeats.TryGetValue(pos, out var g) && s.Gender != g) return false;
+
+            // 가급적 멀리: 이미 배치된 상대와 최소 거리 확보.
+            if (_c.Forbidden && _apartDist.TryGetValue(s.Key, out var aps))
+                foreach (var (partner, minDist) in aps)
+                    if (_posOf.TryGetValue(partner, out var pp) && Chebyshev(pos, pp) < minDist) return false;
+
+            // 가급적 가깝게: 이미 배치된 상대와 최대 거리 이내.
+            if (_c.Required && _closeDist.TryGetValue(s.Key, out var cls))
+                foreach (var (partner, maxDist) in cls)
+                    if (_posOf.TryGetValue(partner, out var pp) && Chebyshev(pos, pp) > maxDist) return false;
+
             return true;
+        }
+
+        // 교실 전체를 한 격자로 보고 Chebyshev(체비셰프) 거리. 팔방 인접 = 1.
+        private int Chebyshev(SeatPosition a, SeatPosition b)
+        {
+            int ga = a.Section * _cols + a.Col, gb = b.Section * _cols + b.Col;
+            return Math.Max(Math.Abs(a.Row - b.Row), Math.Abs(ga - gb));
         }
 
         // 단독석 배치: 짝 필수 학생은 단독 불가.
@@ -337,7 +380,7 @@ public sealed class SeatAssignmentService
                 if (_requiredPartner.TryGetValue(a.Key, out var pa) && pa != b.Key) return false;
                 if (_requiredPartner.TryGetValue(b.Key, out var pb) && pb != a.Key) return false;
             }
-            if (_c.Forbidden && _manualForbidden.Contains(PairKey(a.Key, b.Key))) return false;
+            if (_c.Forbidden && _forbiddenDeskmate.Contains(PairKey(a.Key, b.Key))) return false;
             if (_c.SamePair && _historyPair.Contains(PairKey(a.Key, b.Key))) return false;
             if (_c.Gender && !GenderOk(a.Gender, b.Gender)) return false;
             return true;
@@ -351,6 +394,7 @@ public sealed class SeatAssignmentService
         private void Place(SeatPosition pos, int idx)
         {
             _placed[pos] = _students[idx].Key;
+            _posOf[_students[idx].Key] = pos;
             _used[idx] = true;
             _remaining--;
         }
@@ -358,6 +402,7 @@ public sealed class SeatAssignmentService
         private void Unplace(SeatPosition pos, int idx)
         {
             _placed.Remove(pos);
+            _posOf.Remove(_students[idx].Key);
             _used[idx] = false;
             _remaining++;
         }

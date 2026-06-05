@@ -121,17 +121,23 @@
                                         </Border>
                                     </Grid>
 
-                                    <!-- 짝 금지 -->
+                                    <!-- 가급적 멀리 -->
                                     <StackPanel IsVisible="{Binding IsForbidden}" Spacing="8">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <WrapPanel Orientation="Horizontal">
                                             <ComboBox ItemsSource="{Binding Owner.Students}" SelectedItem="{Binding Owner.ForbiddenA}"
-                                                      ItemTemplate="{StaticResource StudentItem}" Width="170" PlaceholderText="학생 A"/>
-                                            <TextBlock Text="✕" VerticalAlignment="Center" FontWeight="Bold"/>
+                                                      ItemTemplate="{StaticResource StudentItem}" Width="150" PlaceholderText="학생 A" Margin="0,0,6,6"/>
+                                            <TextBlock Text="↔" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,6,6"/>
                                             <ComboBox ItemsSource="{Binding Owner.Students}" SelectedItem="{Binding Owner.ForbiddenB}"
-                                                      ItemTemplate="{StaticResource StudentItem}" Width="170" PlaceholderText="학생 B"/>
-                                            <Button Content="추가" Command="{Binding Owner.AddForbiddenCommand}"/>
-                                            <Button Content="선택 삭제" Command="{Binding Owner.RemoveForbiddenCommand}"/>
-                                        </StackPanel>
+                                                      ItemTemplate="{StaticResource StudentItem}" Width="150" PlaceholderText="학생 B" Margin="0,0,6,6"/>
+                                            <ComboBox ItemsSource="{Binding Owner.ApartLevels}" SelectedItem="{Binding Owner.SelectedApartLevel}"
+                                                      Width="180" Margin="0,0,6,6">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate DataType="vm:LevelOption"><TextBlock Text="{Binding Label}"/></DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <Button Content="추가" Command="{Binding Owner.AddForbiddenCommand}" Margin="0,0,6,6"/>
+                                            <Button Content="선택 삭제" Command="{Binding Owner.RemoveForbiddenCommand}" Margin="0,0,6,6"/>
+                                        </WrapPanel>
                                         <ListBox ItemsSource="{Binding Owner.ForbiddenRows}" SelectedItem="{Binding Owner.SelectedForbidden}"
                                                  MaxHeight="120" Background="White">
                                             <ListBox.ItemTemplate>
@@ -140,17 +146,23 @@
                                         </ListBox>
                                     </StackPanel>
 
-                                    <!-- 짝 필수 -->
+                                    <!-- 가급적 가깝게 -->
                                     <StackPanel IsVisible="{Binding IsRequired}" Spacing="8">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <WrapPanel Orientation="Horizontal">
                                             <ComboBox ItemsSource="{Binding Owner.Students}" SelectedItem="{Binding Owner.RequiredA}"
-                                                      ItemTemplate="{StaticResource StudentItem}" Width="170" PlaceholderText="학생 A"/>
-                                            <TextBlock Text="♥" VerticalAlignment="Center" FontWeight="Bold"/>
+                                                      ItemTemplate="{StaticResource StudentItem}" Width="150" PlaceholderText="학생 A" Margin="0,0,6,6"/>
+                                            <TextBlock Text="↔" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,6,6"/>
                                             <ComboBox ItemsSource="{Binding Owner.Students}" SelectedItem="{Binding Owner.RequiredB}"
-                                                      ItemTemplate="{StaticResource StudentItem}" Width="170" PlaceholderText="학생 B"/>
-                                            <Button Content="추가" Command="{Binding Owner.AddRequiredCommand}"/>
-                                            <Button Content="선택 삭제" Command="{Binding Owner.RemoveRequiredCommand}"/>
-                                        </StackPanel>
+                                                      ItemTemplate="{StaticResource StudentItem}" Width="150" PlaceholderText="학생 B" Margin="0,0,6,6"/>
+                                            <ComboBox ItemsSource="{Binding Owner.CloseLevels}" SelectedItem="{Binding Owner.SelectedCloseLevel}"
+                                                      Width="150" Margin="0,0,6,6">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate DataType="vm:LevelOption"><TextBlock Text="{Binding Label}"/></DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <Button Content="추가" Command="{Binding Owner.AddRequiredCommand}" Margin="0,0,6,6"/>
+                                            <Button Content="선택 삭제" Command="{Binding Owner.RemoveRequiredCommand}" Margin="0,0,6,6"/>
+                                        </WrapPanel>
                                         <ListBox ItemsSource="{Binding Owner.RequiredRows}" SelectedItem="{Binding Owner.SelectedRequired}"
                                                  MaxHeight="120" Background="White">
                                             <ListBox.ItemTemplate>

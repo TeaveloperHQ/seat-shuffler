@@ -35,8 +35,8 @@ public static class ConstraintKindInfo
 
     public static string ToKorean(this ConstraintKind k) => k switch
     {
-        ConstraintKind.RequiredPair => "짝 필수",
-        ConstraintKind.ForbiddenPair => "짝 금지",
+        ConstraintKind.RequiredPair => "가급적 가깝게",
+        ConstraintKind.ForbiddenPair => "가급적 멀리",
         ConstraintKind.GenderSeat => "남녀 자리",
         ConstraintKind.FrontRow => "앞자리",
         ConstraintKind.SamePair => "이전과 같은 짝 회피",
@@ -47,8 +47,8 @@ public static class ConstraintKindInfo
 
     public static string Subtitle(this ConstraintKind k) => k switch
     {
-        ConstraintKind.RequiredPair => "반드시 짝이 되어야 하는 학생",
-        ConstraintKind.ForbiddenPair => "서로 짝이 되면 안 되는 학생",
+        ConstraintKind.RequiredPair => "가까이/짝으로 앉히기 (가까이 ~ 반드시 짝)",
+        ConstraintKind.ForbiddenPair => "떨어뜨려 앉히기 (같은 짝만 금지 ~ 팔방 금지 ~ 멀리)",
         ConstraintKind.GenderSeat => "좌석 설정 탭에서 남자리/여자리를 지정합니다",
         ConstraintKind.FrontRow => "앞쪽에 앉아야 하는 학생",
         _ => "",
