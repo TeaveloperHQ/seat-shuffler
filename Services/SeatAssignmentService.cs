@@ -85,7 +85,7 @@ public sealed class SeatAssignmentService
             Forbidden: hasForbidden,
             Required: hasRequired);
 
-        foreach (var level in BuildLadder(top, constraints.NormalizedPriority()))
+        foreach (var level in BuildLadder(top, constraints.EffectivePriority()))
         {
             var solver = new Solver(students, layout, level, config.PairMode,
                 forbiddenSeat, historyPair, manualForbidden, requiredPartner,

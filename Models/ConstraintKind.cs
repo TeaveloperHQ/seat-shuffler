@@ -16,13 +16,18 @@ public enum ConstraintKind
 
 public static class ConstraintKindInfo
 {
-    /// <summary>기본 우선순위(앞=높음=나중에 완화). 사회적 제약일수록 높게.</summary>
-    public static readonly IReadOnlyList<ConstraintKind> DefaultPriority = new[]
+    /// <summary>사용자가 순서를 정하는 '제약' 4종(기본 우선순위, 앞=높음=나중에 완화).</summary>
+    public static readonly IReadOnlyList<ConstraintKind> ConstraintKinds = new[]
     {
         ConstraintKind.RequiredPair,
         ConstraintKind.ForbiddenPair,
         ConstraintKind.GenderSeat,
         ConstraintKind.FrontRow,
+    };
+
+    /// <summary>배정 '옵션' 3종 — 항상 제약보다 먼저 양보(가장 낮은 우선순위), 고정 순서.</summary>
+    public static readonly IReadOnlyList<ConstraintKind> OptionKinds = new[]
+    {
         ConstraintKind.SamePair,
         ConstraintKind.SameSeat,
         ConstraintKind.GenderPairing,
@@ -38,5 +43,14 @@ public static class ConstraintKindInfo
         ConstraintKind.SameSeat => "이전과 같은 자리 회피",
         ConstraintKind.GenderPairing => "동성/이성 짝",
         _ => k.ToString(),
+    };
+
+    public static string Subtitle(this ConstraintKind k) => k switch
+    {
+        ConstraintKind.RequiredPair => "반드시 짝이 되어야 하는 학생",
+        ConstraintKind.ForbiddenPair => "서로 짝이 되면 안 되는 학생",
+        ConstraintKind.GenderSeat => "좌석 설정 탭에서 남자리/여자리를 지정합니다",
+        ConstraintKind.FrontRow => "앞쪽에 앉아야 하는 학생",
+        _ => "",
     };
 }

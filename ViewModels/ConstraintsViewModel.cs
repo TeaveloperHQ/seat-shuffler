@@ -21,11 +21,17 @@ public sealed class FrontRow
     public string Display { get; init; } = "";
 }
 
-/// <summary>완화 우선순위 행 표시용.</summary>
-public sealed class PriorityRow
+/// <summary>제약 카드 1개(설정 + 드래그 우선순위). Owner로 부모 VM 데이터에 바인딩.</summary>
+public sealed class ConstraintCardViewModel
 {
+    public required ConstraintsViewModel Owner { get; init; }
     public ConstraintKind Kind { get; init; }
-    public string Display { get; init; } = "";
+    public string Title => Kind.ToKorean();
+    public string Subtitle => Kind.Subtitle();
+    public bool IsForbidden => Kind == ConstraintKind.ForbiddenPair;
+    public bool IsRequired => Kind == ConstraintKind.RequiredPair;
+    public bool IsFront => Kind == ConstraintKind.FrontRow;
+    public bool IsGenderSeat => Kind == ConstraintKind.GenderSeat;
 }
 
 public partial class ConstraintsViewModel : ViewModelBase
@@ -38,7 +44,7 @@ public partial class ConstraintsViewModel : ViewModelBase
     public ObservableCollection<PairRow> ForbiddenRows { get; } = new();
     public ObservableCollection<PairRow> RequiredRows { get; } = new();
     public ObservableCollection<FrontRow> FrontRows { get; } = new();
-    public ObservableCollection<PriorityRow> PriorityRows { get; } = new();
+    public ObservableCollection<ConstraintCardViewModel> Cards { get; } = new();
 
     [ObservableProperty] private Student? _forbiddenA;
     [ObservableProperty] private Student? _forbiddenB;
@@ -163,7 +169,7 @@ public partial class ConstraintsViewModel : ViewModelBase
         _frontRowCount = C.FrontRowCount;
         _state.Roster.CollectionChanged += (_, _) => Rebuild();
         Rebuild();
-        RebuildPriority();
+        RebuildCards();
     }
 
     // 디자인타임용
@@ -260,19 +266,22 @@ public partial class ConstraintsViewModel : ViewModelBase
         Rebuild();
     }
 
-    private void RebuildPriority()
+    private void RebuildCards()
     {
-        C.Priority = C.NormalizedPriority(); // 누락분 보강해 영속 일관성 유지
-        PriorityRows.Clear();
-        for (int i = 0; i < C.Priority.Count; i++)
-            PriorityRows.Add(new PriorityRow { Kind = C.Priority[i], Display = $"{i + 1}.  {C.Priority[i].ToKorean()}" });
+        C.Priority = C.ConstraintPriority(); // 제약 4종만, 누락분 보강해 영속 일관성 유지
+        Cards.Clear();
+        foreach (var k in C.Priority)
+            Cards.Add(new ConstraintCardViewModel { Owner = this, Kind = k });
     }
 
-    /// <summary>드래그 앤 드롭 재정렬: moved를 target 위치 앞에 끼워 넣는다.</summary>
+    /// <summary>카드 드래그 재정렬: moved를 target 위치 앞에 끼워 넣는다.</summary>
     public void ReorderPriority(ConstraintKind moved, ConstraintKind target)
     {
         if (moved == target) return;
-        var order = C.Priority.ToList();
+        if (!ConstraintKindInfo.ConstraintKinds.Contains(moved) ||
+            !ConstraintKindInfo.ConstraintKinds.Contains(target)) return;
+
+        var order = C.ConstraintPriority();
         order.Remove(moved);
         int idx = order.IndexOf(target);
         if (idx < 0) idx = order.Count;
@@ -280,7 +289,7 @@ public partial class ConstraintsViewModel : ViewModelBase
 
         C.Priority = order;
         _state.SaveConstraints();
-        RebuildPriority();
+        RebuildCards();
     }
 
     private void UpdateStatus() =>

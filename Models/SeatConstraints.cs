@@ -18,15 +18,23 @@ public sealed class SeatConstraints
     /// <summary>'앞자리'로 간주하는 앞쪽 행 수(맨 앞부터).</summary>
     public int FrontRowCount { get; set; } = 1;
 
-    /// <summary>제약 충돌 시 완화 우선순위(앞=높음=나중에 완화). 비어 있으면 기본값.</summary>
+    /// <summary>제약(4종) 충돌 시 완화 우선순위(앞=높음=나중에 완화). 비어 있으면 기본값.</summary>
     public List<ConstraintKind> Priority { get; set; } = new();
 
-    /// <summary>모든 제약 종류를 포함한 우선순위(누락분은 기본 순서로 보강).</summary>
-    public List<ConstraintKind> NormalizedPriority()
+    /// <summary>사용자 조정 대상인 제약 4종만, 정규화(누락분 보강).</summary>
+    public List<ConstraintKind> ConstraintPriority()
     {
-        var ordered = Priority.Where(k => System.Enum.IsDefined(k)).Distinct().ToList();
-        foreach (var k in ConstraintKindInfo.DefaultPriority)
+        var ordered = Priority.Where(ConstraintKindInfo.ConstraintKinds.Contains).Distinct().ToList();
+        foreach (var k in ConstraintKindInfo.ConstraintKinds)
             if (!ordered.Contains(k)) ordered.Add(k);
         return ordered;
+    }
+
+    /// <summary>솔버용 전체 우선순위: 제약(사용자 순서) 다음에 옵션(고정·가장 낮음).</summary>
+    public List<ConstraintKind> EffectivePriority()
+    {
+        var list = ConstraintPriority();
+        list.AddRange(ConstraintKindInfo.OptionKinds);
+        return list;
     }
 }
