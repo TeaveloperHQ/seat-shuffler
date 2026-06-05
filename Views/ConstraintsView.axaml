@@ -164,6 +164,32 @@
                     </StackPanel>
                 </Border>
 
+                <!-- 충돌 시 우선순위 -->
+                <Border Background="#F4F5F7" CornerRadius="8" Padding="14">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="충돌 시 우선순위" FontWeight="SemiBold"/>
+                        <TextBlock Text="제약끼리 모순돼 모두 만족할 수 없을 때, 위에 있을수록 끝까지 지키고(우선), 아래에 있을수록 먼저 양보합니다."
+                                   Foreground="#666" FontSize="12" TextWrapping="Wrap"/>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <ListBox Grid.Column="0" ItemsSource="{Binding PriorityRows}"
+                                     SelectedItem="{Binding SelectedPriority}"
+                                     MaxHeight="200" Background="White">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="vm:PriorityRow">
+                                        <TextBlock Text="{Binding Display}"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <Button Content="▲ 위로" Command="{Binding PriorityUpCommand}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                <Button Content="▼ 아래로" Command="{Binding PriorityDownCommand}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
                 <TextBlock Text="{Binding Status}" Foreground="Gray" FontSize="12"/>
             </StackPanel>
         </ScrollViewer>

@@ -21,6 +21,13 @@ public sealed class FrontRow
     public string Display { get; init; } = "";
 }
 
+/// <summary>완화 우선순위 행 표시용.</summary>
+public sealed class PriorityRow
+{
+    public ConstraintKind Kind { get; init; }
+    public string Display { get; init; } = "";
+}
+
 public partial class ConstraintsViewModel : ViewModelBase
 {
     private readonly AppState _state;
@@ -31,6 +38,7 @@ public partial class ConstraintsViewModel : ViewModelBase
     public ObservableCollection<PairRow> ForbiddenRows { get; } = new();
     public ObservableCollection<PairRow> RequiredRows { get; } = new();
     public ObservableCollection<FrontRow> FrontRows { get; } = new();
+    public ObservableCollection<PriorityRow> PriorityRows { get; } = new();
 
     [ObservableProperty] private Student? _forbiddenA;
     [ObservableProperty] private Student? _forbiddenB;
@@ -41,6 +49,7 @@ public partial class ConstraintsViewModel : ViewModelBase
     [ObservableProperty] private PairRow? _selectedForbidden;
     [ObservableProperty] private PairRow? _selectedRequired;
     [ObservableProperty] private FrontRow? _selectedFront;
+    [ObservableProperty] private PriorityRow? _selectedPriority;
 
     [ObservableProperty] private decimal _frontRowCount;
     [ObservableProperty] private string _status = "";
@@ -155,6 +164,7 @@ public partial class ConstraintsViewModel : ViewModelBase
         _frontRowCount = C.FrontRowCount;
         _state.Roster.CollectionChanged += (_, _) => Rebuild();
         Rebuild();
+        RebuildPriority();
     }
 
     // 디자인타임용
@@ -250,6 +260,37 @@ public partial class ConstraintsViewModel : ViewModelBase
         _state.SaveConstraints();
         Rebuild();
     }
+
+    private void RebuildPriority()
+    {
+        C.Priority = C.NormalizedPriority(); // 누락분 보강해 영속 일관성 유지
+        PriorityRows.Clear();
+        for (int i = 0; i < C.Priority.Count; i++)
+            PriorityRows.Add(new PriorityRow { Kind = C.Priority[i], Display = $"{i + 1}.  {C.Priority[i].ToKorean()}" });
+    }
+
+    private void MovePriority(int delta)
+    {
+        if (SelectedPriority is null) return;
+        var order = C.Priority.ToList();
+        int idx = order.IndexOf(SelectedPriority.Kind);
+        int dst = idx + delta;
+        if (idx < 0 || dst < 0 || dst >= order.Count) return;
+
+        (order[idx], order[dst]) = (order[dst], order[idx]);
+        C.Priority = order;
+        _state.SaveConstraints();
+
+        var kind = SelectedPriority.Kind;
+        RebuildPriority();
+        SelectedPriority = PriorityRows.FirstOrDefault(r => r.Kind == kind);
+    }
+
+    [RelayCommand]
+    private void PriorityUp() => MovePriority(-1);
+
+    [RelayCommand]
+    private void PriorityDown() => MovePriority(1);
 
     private void UpdateStatus() =>
         Status = $"짝 금지 {ForbiddenRows.Count} · 짝 필수 {RequiredRows.Count} · 앞자리 {FrontRows.Count}";

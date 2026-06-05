@@ -85,7 +85,7 @@ public sealed class SeatAssignmentService
             Forbidden: hasForbidden,
             Required: hasRequired);
 
-        foreach (var level in BuildLadder(top))
+        foreach (var level in BuildLadder(top, constraints.NormalizedPriority()))
         {
             var solver = new Solver(students, layout, level, config.PairMode,
                 forbiddenSeat, historyPair, manualForbidden, requiredPartner,
@@ -119,20 +119,44 @@ public sealed class SeatAssignmentService
         return new AssignmentResult { Error = "배정에 실패했습니다. 구성을 확인하세요." };
     }
 
-    private static List<Constraints> BuildLadder(Constraints top)
+    // 사용자 우선순위(앞=높음)에 따라 완화 사다리 구성: 낮은 순위(뒤)부터 차례로 해제.
+    private static List<Constraints> BuildLadder(Constraints top, IReadOnlyList<ConstraintKind> priority)
     {
         var levels = new List<Constraints> { top };
         var c = top;
-        // 완화 순서: 성별짝 → 같은자리 → 같은짝 → 앞자리 → 남녀자리 → 짝금지 → 짝필수
-        if (c.Gender) { c = c with { Gender = false }; levels.Add(c); }
-        if (c.SameSeat) { c = c with { SameSeat = false }; levels.Add(c); }
-        if (c.SamePair) { c = c with { SamePair = false }; levels.Add(c); }
-        if (c.FrontRow) { c = c with { FrontRow = false }; levels.Add(c); }
-        if (c.GenderSeat) { c = c with { GenderSeat = false }; levels.Add(c); }
-        if (c.Forbidden) { c = c with { Forbidden = false }; levels.Add(c); }
-        if (c.Required) { c = c with { Required = false }; levels.Add(c); }
+        for (int i = priority.Count - 1; i >= 0; i--)
+        {
+            var k = priority[i];
+            if (!IsOn(c, k)) continue;
+            c = TurnOff(c, k);
+            levels.Add(c);
+        }
         return levels;
     }
+
+    private static bool IsOn(Constraints c, ConstraintKind k) => k switch
+    {
+        ConstraintKind.GenderPairing => c.Gender,
+        ConstraintKind.SameSeat => c.SameSeat,
+        ConstraintKind.SamePair => c.SamePair,
+        ConstraintKind.FrontRow => c.FrontRow,
+        ConstraintKind.GenderSeat => c.GenderSeat,
+        ConstraintKind.ForbiddenPair => c.Forbidden,
+        ConstraintKind.RequiredPair => c.Required,
+        _ => false,
+    };
+
+    private static Constraints TurnOff(Constraints c, ConstraintKind k) => k switch
+    {
+        ConstraintKind.GenderPairing => c with { Gender = false },
+        ConstraintKind.SameSeat => c with { SameSeat = false },
+        ConstraintKind.SamePair => c with { SamePair = false },
+        ConstraintKind.FrontRow => c with { FrontRow = false },
+        ConstraintKind.GenderSeat => c with { GenderSeat = false },
+        ConstraintKind.ForbiddenPair => c with { Forbidden = false },
+        ConstraintKind.RequiredPair => c with { Required = false },
+        _ => c,
+    };
 
     private static Dictionary<string, string> BuildRequiredPartners(
         IEnumerable<StudentPair> required, HashSet<string> rosterKeys)
