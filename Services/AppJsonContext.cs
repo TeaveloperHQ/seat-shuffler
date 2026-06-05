@@ -27,12 +27,13 @@ public sealed class HistoryDocument
     public List<ConfirmedRecord> Records { get; set; } = new();
 }
 
-/// <summary>constraints.json 루트 문서 — 제약 + 배정 설정.</summary>
+/// <summary>constraints.json 루트 문서 — 제약 + 배정 설정 + 보안.</summary>
 public sealed class ConstraintsDocument
 {
     public int SchemaVersion { get; set; } = 1;
     public SeatConstraints Constraints { get; set; } = new();
     public AssignmentSettings Settings { get; set; } = new();
+    public SecuritySettings Security { get; set; } = new();
 }
 
 /// <summary>

@@ -18,90 +18,155 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <ScrollViewer>
-        <StackPanel Margin="14" Spacing="14">
+    <Grid>
+        <!-- 잠금 화면 -->
+        <Border IsVisible="{Binding IsLocked}" Background="#FAFAFA">
+            <Border Background="White" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="12"
+                    Padding="28" Width="360" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    BoxShadow="0 2 12 0 #1A000000">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="🔒 제약 탭 잠김" FontSize="18" FontWeight="Bold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="민감한 정보가 있어 보호됩니다. 학생에게 노출되지 않도록 주의하세요."
+                               Foreground="Gray" FontSize="12" TextWrapping="Wrap"
+                               TextAlignment="Center"/>
 
-            <TextBlock Text="제약 조건" FontSize="18" FontWeight="Bold"/>
-            <TextBlock Text="여기서 정한 조건은 저장되어 다음 실행에도 유지되며, 배정 시 우선 적용됩니다. (충돌 시 성별 짝부터 자동 완화)"
-                       Foreground="Gray" FontSize="12" TextWrapping="Wrap"/>
-
-            <!-- 짝 금지 -->
-            <Border Background="#F4F5F7" CornerRadius="8" Padding="14">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="짝 금지 — 서로 짝이 되면 안 되는 학생" FontWeight="SemiBold"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding ForbiddenA}"
-                                  ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 A"/>
-                        <TextBlock Text="✕" VerticalAlignment="Center" FontWeight="Bold"/>
-                        <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding ForbiddenB}"
-                                  ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 B"/>
-                        <Button Content="추가" Command="{Binding AddForbiddenCommand}"/>
-                        <Button Content="선택 삭제" Command="{Binding RemoveForbiddenCommand}"/>
+                    <!-- 최초 설정 -->
+                    <StackPanel IsVisible="{Binding ShowSetup}" Spacing="8" Margin="0,6,0,0">
+                        <TextBlock Text="처음 사용 — PIN을 설정하세요 (4자리 이상)" FontSize="12" Foreground="#555"/>
+                        <TextBox Text="{Binding PinInput}" PasswordChar="●" Watermark="새 PIN"
+                                 UseFloatingWatermark="False"/>
+                        <TextBox Text="{Binding PinConfirm}" PasswordChar="●" Watermark="PIN 확인"/>
+                        <Button Content="PIN 설정하고 열기" Command="{Binding SetPinCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Padding="0,10" FontWeight="SemiBold"/>
                     </StackPanel>
-                    <ListBox ItemsSource="{Binding ForbiddenRows}" SelectedItem="{Binding SelectedForbidden}"
-                             MaxHeight="120" Background="White">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="vm:PairRow">
-                                <TextBlock Text="{Binding Display}"/>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+
+                    <!-- 잠금 해제 -->
+                    <StackPanel IsVisible="{Binding ShowUnlock}" Spacing="8" Margin="0,6,0,0">
+                        <TextBox Text="{Binding PinInput}" PasswordChar="●" Watermark="PIN 입력">
+                            <TextBox.KeyBindings>
+                                <KeyBinding Gesture="Enter" Command="{Binding UnlockCommand}"/>
+                            </TextBox.KeyBindings>
+                        </TextBox>
+                        <Button Content="열기" Command="{Binding UnlockCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Padding="0,10" FontWeight="SemiBold"/>
+                        <Button Content="PIN을 잊으셨나요?" Command="{Binding ForgotPinCommand}"
+                                HorizontalAlignment="Center" Background="Transparent"
+                                Foreground="#3498DB" Padding="2" FontSize="12"/>
+                    </StackPanel>
+
+                    <!-- PIN 분실 → 초기화 확인 -->
+                    <StackPanel IsVisible="{Binding ShowReset}" Spacing="10" Margin="0,6,0,0">
+                        <TextBlock Text="제약을 모두 삭제하고 새 PIN을 설정합니다. 기존 짝 금지·짝 필수·앞자리 설정이 사라집니다."
+                                   Foreground="#C0392B" FontSize="12" TextWrapping="Wrap" TextAlignment="Center"/>
+                        <Button Content="제약 초기화하고 새 PIN 설정" Command="{Binding ResetConstraintsCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Padding="0,10" FontWeight="SemiBold"/>
+                        <Button Content="취소" Command="{Binding CancelResetCommand}"
+                                HorizontalAlignment="Center" Background="Transparent"
+                                Foreground="#888" Padding="2" FontSize="12"/>
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding LockMessage}" Foreground="#C0392B" FontSize="12"
+                               HorizontalAlignment="Center" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
+        </Border>
 
-            <!-- 짝 필수 -->
-            <Border Background="#F4F5F7" CornerRadius="8" Padding="14">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="짝 필수 — 반드시 짝이 되어야 하는 학생" FontWeight="SemiBold"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding RequiredA}"
-                                  ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 A"/>
-                        <TextBlock Text="♥" VerticalAlignment="Center" FontWeight="Bold"/>
-                        <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding RequiredB}"
-                                  ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 B"/>
-                        <Button Content="추가" Command="{Binding AddRequiredCommand}"/>
-                        <Button Content="선택 삭제" Command="{Binding RemoveRequiredCommand}"/>
-                    </StackPanel>
-                    <ListBox ItemsSource="{Binding RequiredRows}" SelectedItem="{Binding SelectedRequired}"
-                             MaxHeight="120" Background="White">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="vm:PairRow">
-                                <TextBlock Text="{Binding Display}"/>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </StackPanel>
-            </Border>
+        <!-- 제약 내용 (잠금 해제 시에만) -->
+        <ScrollViewer IsVisible="{Binding IsUnlocked}">
+            <StackPanel Margin="14" Spacing="14">
 
-            <!-- 앞자리 -->
-            <Border Background="#F4F5F7" CornerRadius="8" Padding="14">
-                <StackPanel Spacing="8">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBlock Text="앞자리 — 앞쪽에 앉아야 하는 학생" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        <TextBlock Text="앞쪽" VerticalAlignment="Center" Margin="12,0,0,0"/>
-                        <NumericUpDown Value="{Binding FrontRowCount}" Minimum="1" Maximum="12"
-                                       Increment="1" FormatString="0" Width="100"/>
-                        <TextBlock Text="행까지" VerticalAlignment="Center"/>
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="제약 조건" FontSize="18" FontWeight="Bold"/>
+                        <TextBlock Text="여기서 정한 조건은 저장되어 다음 실행에도 유지되며, 배정 시 우선 적용됩니다. (충돌 시 성별 짝부터 자동 완화)"
+                                   Foreground="Gray" FontSize="12" TextWrapping="Wrap"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding FrontStudent}"
-                                  ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생"/>
-                        <Button Content="추가" Command="{Binding AddFrontCommand}"/>
-                        <Button Content="선택 삭제" Command="{Binding RemoveFrontCommand}"/>
-                    </StackPanel>
-                    <ListBox ItemsSource="{Binding FrontRows}" SelectedItem="{Binding SelectedFront}"
-                             MaxHeight="120" Background="White">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="vm:FrontRow">
-                                <TextBlock Text="{Binding Display}"/>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </StackPanel>
-            </Border>
+                    <Button Grid.Column="1" Content="PIN 변경" Command="{Binding ChangePinCommand}"
+                            VerticalAlignment="Top"/>
+                </Grid>
 
-            <TextBlock Text="{Binding Status}" Foreground="Gray" FontSize="12"/>
-        </StackPanel>
-    </ScrollViewer>
+                <!-- 짝 금지 -->
+                <Border Background="#F4F5F7" CornerRadius="8" Padding="14">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="짝 금지 — 서로 짝이 되면 안 되는 학생" FontWeight="SemiBold"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding ForbiddenA}"
+                                      ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 A"/>
+                            <TextBlock Text="✕" VerticalAlignment="Center" FontWeight="Bold"/>
+                            <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding ForbiddenB}"
+                                      ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 B"/>
+                            <Button Content="추가" Command="{Binding AddForbiddenCommand}"/>
+                            <Button Content="선택 삭제" Command="{Binding RemoveForbiddenCommand}"/>
+                        </StackPanel>
+                        <ListBox ItemsSource="{Binding ForbiddenRows}" SelectedItem="{Binding SelectedForbidden}"
+                                 MaxHeight="120" Background="White">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="vm:PairRow">
+                                    <TextBlock Text="{Binding Display}"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+
+                <!-- 짝 필수 -->
+                <Border Background="#F4F5F7" CornerRadius="8" Padding="14">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="짝 필수 — 반드시 짝이 되어야 하는 학생" FontWeight="SemiBold"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding RequiredA}"
+                                      ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 A"/>
+                            <TextBlock Text="♥" VerticalAlignment="Center" FontWeight="Bold"/>
+                            <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding RequiredB}"
+                                      ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생 B"/>
+                            <Button Content="추가" Command="{Binding AddRequiredCommand}"/>
+                            <Button Content="선택 삭제" Command="{Binding RemoveRequiredCommand}"/>
+                        </StackPanel>
+                        <ListBox ItemsSource="{Binding RequiredRows}" SelectedItem="{Binding SelectedRequired}"
+                                 MaxHeight="120" Background="White">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="vm:PairRow">
+                                    <TextBlock Text="{Binding Display}"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+
+                <!-- 앞자리 -->
+                <Border Background="#F4F5F7" CornerRadius="8" Padding="14">
+                    <StackPanel Spacing="8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="앞자리 — 앞쪽에 앉아야 하는 학생" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text="앞쪽" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            <NumericUpDown Value="{Binding FrontRowCount}" Minimum="1" Maximum="12"
+                                           Increment="1" FormatString="0" Width="100"/>
+                            <TextBlock Text="행까지" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ComboBox ItemsSource="{Binding Students}" SelectedItem="{Binding FrontStudent}"
+                                      ItemTemplate="{StaticResource StudentItem}" Width="180" PlaceholderText="학생"/>
+                            <Button Content="추가" Command="{Binding AddFrontCommand}"/>
+                            <Button Content="선택 삭제" Command="{Binding RemoveFrontCommand}"/>
+                        </StackPanel>
+                        <ListBox ItemsSource="{Binding FrontRows}" SelectedItem="{Binding SelectedFront}"
+                                 MaxHeight="120" Background="White">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="vm:FrontRow">
+                                    <TextBlock Text="{Binding Display}"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{Binding Status}" Foreground="Gray" FontSize="12"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 
 </UserControl>

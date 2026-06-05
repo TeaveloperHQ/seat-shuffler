@@ -45,6 +45,110 @@ public partial class ConstraintsViewModel : ViewModelBase
     [ObservableProperty] private decimal _frontRowCount;
     [ObservableProperty] private string _status = "";
 
+    // ── 잠금(보안) ─────────────────────────────────────────────
+    [ObservableProperty] private bool _isLocked = true;
+    [ObservableProperty] private bool _forceSetup;
+    [ObservableProperty] private bool _confirmingReset;
+    [ObservableProperty] private string _pinInput = "";
+    [ObservableProperty] private string _pinConfirm = "";
+    [ObservableProperty] private string _lockMessage = "";
+
+    public bool IsUnlocked => !IsLocked;
+    public bool NeedsSetup => string.IsNullOrEmpty(_state.Security.ConstraintsPinHash);
+    public bool ShowReset => IsLocked && ConfirmingReset;
+    public bool ShowSetup => IsLocked && !ConfirmingReset && (NeedsSetup || ForceSetup);
+    public bool ShowUnlock => IsLocked && !ConfirmingReset && !ShowSetup;
+
+    private void NotifyLockStates()
+    {
+        OnPropertyChanged(nameof(IsUnlocked));
+        OnPropertyChanged(nameof(ShowReset));
+        OnPropertyChanged(nameof(ShowSetup));
+        OnPropertyChanged(nameof(ShowUnlock));
+    }
+
+    partial void OnIsLockedChanged(bool value) => NotifyLockStates();
+    partial void OnForceSetupChanged(bool value) => NotifyLockStates();
+    partial void OnConfirmingResetChanged(bool value) => NotifyLockStates();
+
+    /// <summary>탭을 떠날 때 호출 — 다시 잠그고 입력 초기화.</summary>
+    public void Lock()
+    {
+        IsLocked = true;
+        ForceSetup = false;
+        ConfirmingReset = false;
+        PinInput = "";
+        PinConfirm = "";
+        LockMessage = "";
+    }
+
+    [RelayCommand]
+    private void ForgotPin() => ConfirmingReset = true;
+
+    [RelayCommand]
+    private void CancelReset()
+    {
+        ConfirmingReset = false;
+        LockMessage = "";
+    }
+
+    [RelayCommand]
+    private void ResetConstraints()
+    {
+        // 모든 제약 + PIN 제거 후 새 PIN 설정 단계로. (내용은 노출되지 않고 삭제만)
+        C.ForbiddenPairs.Clear();
+        C.RequiredPairs.Clear();
+        C.FrontRowStudents.Clear();
+        _state.Security.ConstraintsPinHash = null;
+        _state.SaveConstraints();
+        OnPropertyChanged(nameof(NeedsSetup));
+        Rebuild();
+
+        ConfirmingReset = false;
+        ForceSetup = false;
+        PinInput = PinConfirm = "";
+        LockMessage = "제약을 초기화했습니다. 새 PIN을 설정하세요.";
+    }
+
+    [RelayCommand]
+    private void SetPin()
+    {
+        if (PinInput.Length < 4) { LockMessage = "PIN은 4자리 이상이어야 합니다."; return; }
+        if (PinInput != PinConfirm) { LockMessage = "두 PIN이 일치하지 않습니다."; return; }
+        _state.Security.ConstraintsPinHash = PinHasher.Hash(PinInput);
+        _state.SaveConstraints();
+        OnPropertyChanged(nameof(NeedsSetup));
+        ForceSetup = false;
+        PinInput = PinConfirm = "";
+        LockMessage = "";
+        IsLocked = false;
+    }
+
+    [RelayCommand]
+    private void Unlock()
+    {
+        if (PinHasher.Verify(PinInput, _state.Security.ConstraintsPinHash))
+        {
+            PinInput = "";
+            LockMessage = "";
+            IsLocked = false;
+        }
+        else
+        {
+            LockMessage = "PIN이 일치하지 않습니다.";
+            PinInput = "";
+        }
+    }
+
+    [RelayCommand]
+    private void ChangePin()
+    {
+        ForceSetup = true;
+        IsLocked = true;
+        PinInput = PinConfirm = "";
+        LockMessage = "새 PIN을 설정하세요.";
+    }
+
     public ConstraintsViewModel(AppState state)
     {
         _state = state;

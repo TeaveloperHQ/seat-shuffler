@@ -17,6 +17,7 @@ public sealed class AppState
     public ObservableCollection<ConfirmedRecord> History { get; } = new();
     public SeatConstraints Constraints { get; }
     public AssignmentSettings Settings { get; }
+    public SecuritySettings Security { get; }
 
     public AppState()
     {
@@ -28,13 +29,19 @@ public sealed class AppState
         var doc = _constraintsStore.Load();
         Constraints = doc.Constraints;
         Settings = doc.Settings;
+        Security = doc.Security;
     }
 
     public void SaveRoster() => _rosterStore.Save(Roster);
     public void SaveHistory() => _historyStore.Save(History);
 
     public void SaveConstraints() =>
-        _constraintsStore.Save(new ConstraintsDocument { Constraints = Constraints, Settings = Settings });
+        _constraintsStore.Save(new ConstraintsDocument
+        {
+            Constraints = Constraints,
+            Settings = Settings,
+            Security = Security,
+        });
 
     public void Save()
     {

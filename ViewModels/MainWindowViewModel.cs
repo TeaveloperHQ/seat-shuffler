@@ -17,7 +17,16 @@ public partial class MainWindowViewModel : ViewModelBase
     public HistoryViewModel History { get; }
     public InfoViewModel Info { get; }
 
+    private const int ConstraintsTabIndex = 1;
+
     [ObservableProperty] private int _selectedTabIndex;
+
+    // 제약 탭을 벗어나면 즉시 다시 잠근다(학생 앞 노출 방지).
+    partial void OnSelectedTabIndexChanged(int value)
+    {
+        if (value != ConstraintsTabIndex)
+            Constraints.Lock();
+    }
 
     public MainWindowViewModel(AppState state)
     {
