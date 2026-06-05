@@ -49,7 +49,6 @@ public partial class ConstraintsViewModel : ViewModelBase
     [ObservableProperty] private PairRow? _selectedForbidden;
     [ObservableProperty] private PairRow? _selectedRequired;
     [ObservableProperty] private FrontRow? _selectedFront;
-    [ObservableProperty] private PriorityRow? _selectedPriority;
 
     [ObservableProperty] private decimal _frontRowCount;
     [ObservableProperty] private string _status = "";
@@ -269,28 +268,20 @@ public partial class ConstraintsViewModel : ViewModelBase
             PriorityRows.Add(new PriorityRow { Kind = C.Priority[i], Display = $"{i + 1}.  {C.Priority[i].ToKorean()}" });
     }
 
-    private void MovePriority(int delta)
+    /// <summary>드래그 앤 드롭 재정렬: moved를 target 위치 앞에 끼워 넣는다.</summary>
+    public void ReorderPriority(ConstraintKind moved, ConstraintKind target)
     {
-        if (SelectedPriority is null) return;
+        if (moved == target) return;
         var order = C.Priority.ToList();
-        int idx = order.IndexOf(SelectedPriority.Kind);
-        int dst = idx + delta;
-        if (idx < 0 || dst < 0 || dst >= order.Count) return;
+        order.Remove(moved);
+        int idx = order.IndexOf(target);
+        if (idx < 0) idx = order.Count;
+        order.Insert(idx, moved);
 
-        (order[idx], order[dst]) = (order[dst], order[idx]);
         C.Priority = order;
         _state.SaveConstraints();
-
-        var kind = SelectedPriority.Kind;
         RebuildPriority();
-        SelectedPriority = PriorityRows.FirstOrDefault(r => r.Kind == kind);
     }
-
-    [RelayCommand]
-    private void PriorityUp() => MovePriority(-1);
-
-    [RelayCommand]
-    private void PriorityDown() => MovePriority(1);
 
     private void UpdateStatus() =>
         Status = $"짝 금지 {ForbiddenRows.Count} · 짝 필수 {RequiredRows.Count} · 앞자리 {FrontRows.Count}";

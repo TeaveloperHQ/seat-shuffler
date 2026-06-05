@@ -164,29 +164,28 @@
                     </StackPanel>
                 </Border>
 
-                <!-- 충돌 시 우선순위 -->
+                <!-- 충돌 시 우선순위 (드래그로 순서 변경) -->
                 <Border Background="#F4F5F7" CornerRadius="8" Padding="14">
                     <StackPanel Spacing="8">
                         <TextBlock Text="충돌 시 우선순위" FontWeight="SemiBold"/>
-                        <TextBlock Text="제약끼리 모순돼 모두 만족할 수 없을 때, 위에 있을수록 끝까지 지키고(우선), 아래에 있을수록 먼저 양보합니다."
+                        <TextBlock Text="제약끼리 모순돼 모두 만족할 수 없을 때, 위에 있을수록 끝까지 지키고(우선), 아래에 있을수록 먼저 양보합니다. 오른쪽 손잡이(≡)를 잡고 카드를 끌어 순서를 바꾸세요."
                                    Foreground="#666" FontSize="12" TextWrapping="Wrap"/>
-                        <Grid ColumnDefinitions="*,Auto">
-                            <ListBox Grid.Column="0" ItemsSource="{Binding PriorityRows}"
-                                     SelectedItem="{Binding SelectedPriority}"
-                                     MaxHeight="200" Background="White">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate DataType="vm:PriorityRow">
-                                        <TextBlock Text="{Binding Display}"/>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                            <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0" VerticalAlignment="Center">
-                                <Button Content="▲ 위로" Command="{Binding PriorityUpCommand}"
-                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-                                <Button Content="▼ 아래로" Command="{Binding PriorityDownCommand}"
-                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-                            </StackPanel>
-                        </Grid>
+                        <ItemsControl x:Name="PriorityList" ItemsSource="{Binding PriorityRows}"
+                                      DragDrop.AllowDrop="True">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="vm:PriorityRow">
+                                    <Border Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                            CornerRadius="6" Padding="12,9" Margin="0,3" Cursor="Hand">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.Column="0" Text="{Binding Display}"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="≡" FontSize="18"
+                                                       Foreground="#BBB" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
 
