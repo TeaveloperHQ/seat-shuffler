@@ -48,6 +48,19 @@
                     <TextBlock Text="{Binding Counts}" Foreground="#666" FontSize="12" Margin="0,4,0,0"/>
                 </StackPanel>
             </Border>
+
+            <Border Background="#FFF6E5" BorderBrush="#F0D9A0" BorderThickness="1"
+                    CornerRadius="8" Padding="14" Margin="0,2,0,0">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="꾸미기 이미지 안내" FontWeight="SemiBold" FontSize="15"/>
+                    <TextBlock TextWrapping="Wrap" Foreground="#7A5B1E" FontSize="12.5"
+                               Text="꾸미기 탭에서 넣은 배경·좌석 셀 이미지는 앱에 복사되지 않고 원본 파일의 위치(경로)만 저장됩니다. 출력할 때마다 그 위치에서 이미지를 다시 불러옵니다."/>
+                    <TextBlock TextWrapping="Wrap" Foreground="#7A5B1E" FontSize="12.5"
+                               Text="• 원본 이미지를 옮기거나 이름을 바꾸거나 삭제하면 그 그림이 사라지고 기본 색으로 돌아갑니다.&#10;• 다른 PC로 옮길 때는 이미지 파일도 함께 옮기고 꾸미기 탭에서 다시 지정해 주세요."/>
+                    <TextBlock TextWrapping="Wrap" Foreground="#9A7B3E" FontSize="11.5"
+                               Text="팁: 이미지를 고정된 폴더(예: 사진 폴더)에 두고 사용하면 안전합니다."/>
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 
