@@ -15,6 +15,13 @@
         <!-- 스킨 + 옵션 + 출력 -->
         <Border Grid.Row="0" Background="#F4F5F7" CornerRadius="8" Padding="12" Margin="0,0,0,8">
             <WrapPanel Orientation="Horizontal">
+                <TextBlock Text="불러오기" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}"
+                          Width="280" Margin="0,0,16,4" VerticalAlignment="Center">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="vm:ChartSource"><TextBlock Text="{Binding Label}"/></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
                 <TextBlock Text="스킨" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <ListBox ItemsSource="{Binding Skins}" SelectedItem="{Binding SelectedSkin}"
                          Background="Transparent" BorderThickness="0" Margin="0,0,16,0">

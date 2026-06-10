@@ -4,11 +4,19 @@ using System.Threading.Tasks;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SeatShuffler.Models;
 using SeatShuffler.Services;
 
 namespace SeatShuffler.ViewModels;
 
-/// <summary>꾸미기 탭: 출력 스킨·교탁 기준 + 미리보기 + PNG 출력.</summary>
+/// <summary>출력 차트 소스(현재 배정 또는 기록).</summary>
+public sealed class ChartSource
+{
+    public string Label { get; init; } = "";
+    public ChartSnapshot? Snapshot { get; init; }
+}
+
+/// <summary>꾸미기 탭: 소스 선택(현재 배정/기록) + 스킨·교탁 기준 + 미리보기 + PNG 출력.</summary>
 public partial class DecorateViewModel : ViewModelBase
 {
     private readonly AppState _state;
@@ -16,7 +24,9 @@ public partial class DecorateViewModel : ViewModelBase
     private bool _loading;
 
     public ChartSkin[] Skins { get; } = ChartSkin.Presets.ToArray();
+    public ObservableCollection<ChartSource> Sources { get; } = new();
 
+    [ObservableProperty] private ChartSource? _selectedSource;
     [ObservableProperty] private ChartSkin? _selectedSkin;
     [ObservableProperty] private bool _flipForTeacher;
     [ObservableProperty] private string _status = "";
@@ -33,6 +43,7 @@ public partial class DecorateViewModel : ViewModelBase
         _state = state;
         _export = export;
         LoadFromSettings();
+        BuildSources();
         RenderPreview();
     }
 
@@ -55,8 +66,41 @@ public partial class DecorateViewModel : ViewModelBase
         _state.SaveConstraints();
     }
 
+    // 소스 목록: '현재 배정' + 기록(최신 먼저). 선택은 가능하면 유지.
+    private void BuildSources()
+    {
+        var prevLabel = SelectedSource?.Label;
+        Sources.Clear();
+        Sources.Add(new ChartSource { Label = "현재 배정 (배정 탭)", Snapshot = _state.LastChart });
+        foreach (var rec in _state.History.Reverse())
+            Sources.Add(new ChartSource
+            {
+                Label = $"기록 · {rec.Label} ({rec.ConfigSummary}, {rec.StudentCount}명)",
+                Snapshot = FromRecord(rec),
+            });
+
+        _loading = true;
+        SelectedSource = Sources.FirstOrDefault(s => s.Label == prevLabel) ?? Sources[0];
+        _loading = false;
+    }
+
+    private static ChartSnapshot FromRecord(ConfirmedRecord rec)
+    {
+        var snap = new ChartSnapshot { Config = rec.Config.Clone() };
+        foreach (var p in rec.Placements)
+            snap.Seats.Add(new ChartSeat
+            {
+                Section = p.Section, Row = p.Row, Col = p.Col,
+                Name = p.StudentName,
+                SubText = p.StudentKey != p.StudentName ? p.StudentKey : p.Gender.ToKorean(),
+                Gender = p.Gender,
+            });
+        return snap;
+    }
+
     partial void OnSelectedSkinChanged(ChartSkin? value) { SaveSettings(); RenderPreview(); }
     partial void OnFlipForTeacherChanged(bool value) { SaveSettings(); RenderPreview(); }
+    partial void OnSelectedSourceChanged(ChartSource? value) { if (!_loading) RenderPreview(); }
 
     private void RenderPreview()
     {
@@ -64,11 +108,11 @@ public partial class DecorateViewModel : ViewModelBase
         PreviewBackground = skin.PageBackground;
 
         PreviewSections.Clear();
-        var snap = _state.LastChart;
+        var snap = SelectedSource?.Snapshot;
         if (snap is null)
         {
             CanExport = false;
-            Status = "'배정' 탭에서 먼저 자리를 배정하세요. 그 결과가 여기에 표시됩니다.";
+            Status = "'배정' 탭에서 배정하거나, 위에서 기록을 선택하세요.";
             return;
         }
 
@@ -85,15 +129,17 @@ public partial class DecorateViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanExportExec))]
     private async Task ExportAsync()
     {
-        if (_state.LastChart is null) return;
+        var snap = SelectedSource?.Snapshot;
+        if (snap is null) return;
         await _export.ExportSeatChartAsync(
-            "자리 배치표", _state.LastChart, SelectedSkin ?? ChartSkin.Presets[0], FlipForTeacher);
+            "자리 배치표", snap, SelectedSkin ?? ChartSkin.Presets[0], FlipForTeacher);
     }
 
-    /// <summary>탭 진입 시 호출 — 최신 배정 결과로 미리보기 갱신.</summary>
+    /// <summary>탭 진입 시 호출 — 소스 목록(최신 기록 포함)·미리보기 갱신.</summary>
     public void Refresh()
     {
         LoadFromSettings();
+        BuildSources();
         RenderPreview();
     }
 }
