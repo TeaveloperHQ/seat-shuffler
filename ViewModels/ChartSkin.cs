@@ -75,6 +75,43 @@ public sealed class ChartSkin
             MaleSeat = B("#FCE3CF"), FemaleSeat = B("#FAD2D2"), NeutralSeat = B("#FFF7E8"),
             SeatBorder = B("#F0D9C4"),
         },
+
+        new ChartSkin
+        {
+            Id = "mint", Name = "민트",
+            PageBackground = B("#F0FAF6"), TitleColor = B("#1F6B57"),
+            BoardBackground = B("#3FA083"), BoardForeground = B("#EAFBF4"),
+            MaleSeat = B("#D6EFF8"), FemaleSeat = B("#FBE2EC"), NeutralSeat = B("#E6F7EF"),
+            SeatBorder = B("#CBE9DD"),
+        },
+
+        new ChartSkin
+        {
+            Id = "lavender", Name = "라벤더",
+            PageBackground = B("#F7F4FC"), TitleColor = B("#5B4B86"),
+            BoardBackground = B("#8169B0"), BoardForeground = B("#F2ECFB"),
+            MaleSeat = B("#DCE3F7"), FemaleSeat = B("#F3DCF0"), NeutralSeat = B("#EEE8F8"),
+            SeatBorder = B("#E0D6F0"),
+        },
+
+        new ChartSkin
+        {
+            Id = "mono", Name = "모노",
+            PageBackground = B("#FFFFFF"), TitleColor = B("#222222"), SubTitleColor = B("#999999"),
+            SectionTitle = B("#777777"),
+            BoardBackground = B("#333333"), BoardForeground = B("#EEEEEE"),
+            MaleSeat = B("#ECECEC"), FemaleSeat = B("#DDDDDD"), NeutralSeat = B("#F5F5F5"),
+            SeatBorder = B("#CCCCCC"), SeatForeground = B("#222222"),
+        },
+
+        new ChartSkin
+        {
+            Id = "forest", Name = "숲",
+            PageBackground = B("#F1F6EC"), TitleColor = B("#3B5A2E"),
+            BoardBackground = B("#5C7A3F"), BoardForeground = B("#EEF6E4"),
+            MaleSeat = B("#DCEAF0"), FemaleSeat = B("#F2E2D6"), NeutralSeat = B("#E7F0DC"),
+            SeatBorder = B("#D3E2C4"),
+        },
     };
 
     public static ChartSkin ById(string? id)

@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SeatShuffler.Models;
@@ -20,7 +22,8 @@ public sealed class ChartSource
 public partial class DecorateViewModel : ViewModelBase
 {
     private readonly AppState _state;
-    private readonly IExportService _export;
+    private readonly UiServices _ui;
+    private Bitmap? _backgroundBitmap;
     private bool _loading;
 
     public ChartSkin[] Skins { get; } = ChartSkin.Presets.ToArray();
@@ -31,6 +34,8 @@ public partial class DecorateViewModel : ViewModelBase
     [ObservableProperty] private bool _flipForTeacher;
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private IBrush _previewBackground = Brushes.White;
+    [ObservableProperty] private Bitmap? _previewBackgroundImage;
+    [ObservableProperty] private bool _hasBackground;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
@@ -38,10 +43,10 @@ public partial class DecorateViewModel : ViewModelBase
 
     public ObservableCollection<SeatSectionViewModel> PreviewSections { get; } = new();
 
-    public DecorateViewModel(AppState state, IExportService export)
+    public DecorateViewModel(AppState state, UiServices ui)
     {
         _state = state;
-        _export = export;
+        _ui = ui;
         LoadFromSettings();
         BuildSources();
         RenderPreview();
@@ -55,7 +60,39 @@ public partial class DecorateViewModel : ViewModelBase
         _loading = true;
         SelectedSkin = ChartSkin.ById(_state.Settings.SkinId);
         FlipForTeacher = _state.Settings.FlipForTeacher;
+        LoadBackgroundBitmap(_state.Settings.BackgroundImagePath);
         _loading = false;
+    }
+
+    private void LoadBackgroundBitmap(string? path)
+    {
+        _backgroundBitmap = null;
+        if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+        {
+            try { _backgroundBitmap = new Bitmap(path); } catch { _backgroundBitmap = null; }
+        }
+        PreviewBackgroundImage = _backgroundBitmap;
+        HasBackground = _backgroundBitmap is not null;
+    }
+
+    [RelayCommand]
+    private async Task LoadBackgroundAsync()
+    {
+        var path = await _ui.PickImageAsync();
+        if (path is null) return;
+        _state.Settings.BackgroundImagePath = path;
+        _state.SaveConstraints();
+        LoadBackgroundBitmap(path);
+        RenderPreview();
+    }
+
+    [RelayCommand]
+    private void ClearBackground()
+    {
+        _state.Settings.BackgroundImagePath = null;
+        _state.SaveConstraints();
+        LoadBackgroundBitmap(null);
+        RenderPreview();
     }
 
     private void SaveSettings()
@@ -131,8 +168,8 @@ public partial class DecorateViewModel : ViewModelBase
     {
         var snap = SelectedSource?.Snapshot;
         if (snap is null) return;
-        await _export.ExportSeatChartAsync(
-            "자리 배치표", snap, SelectedSkin ?? ChartSkin.Presets[0], FlipForTeacher);
+        await _ui.ExportSeatChartAsync(
+            "자리 배치표", snap, SelectedSkin ?? ChartSkin.Presets[0], FlipForTeacher, _backgroundBitmap);
     }
 
     /// <summary>탭 진입 시 호출 — 소스 목록(최신 기록 포함)·미리보기 갱신.</summary>

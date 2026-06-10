@@ -32,8 +32,11 @@ public interface IDialogService
 
 public interface IExportService
 {
-    /// <summary>좌석표를 스킨·교탁반전 적용해 PNG로 저장하고 기본 뷰어로 연다.</summary>
-    Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip);
+    /// <summary>좌석표를 스킨·교탁반전·배경이미지 적용해 PNG로 저장하고 기본 뷰어로 연다.</summary>
+    Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip, Bitmap? background);
+
+    /// <summary>커스텀 배경 이미지 파일을 선택해 로컬 경로를 돌려준다.</summary>
+    Task<string?> PickImageAsync();
 }
 
 /// <summary>
@@ -47,14 +50,31 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
     private static readonly FontFamily ChartFont =
         new("굴림, Gulim, Malgun Gothic, Noto Sans CJK KR, Nanum Gothic, sans-serif");
 
-    public async Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip)
+    public async Task<string?> PickImageAsync()
+    {
+        var sp = Owner?.StorageProvider;
+        if (sp is null) return null;
+        var files = await sp.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "배경 이미지 선택",
+            AllowMultiple = false,
+            FileTypeFilter = new List<FilePickerFileType>
+            {
+                new("이미지") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp" } },
+                new("모든 파일") { Patterns = new[] { "*" } },
+            },
+        });
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
+    public async Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip, Bitmap? background)
     {
         var sp = Owner?.StorageProvider;
         if (sp is null) return;
 
-        // 스킨·교탁반전 적용한 좌석표를 별도 비주얼로 구성해 이미지로 렌더.
+        // 스킨·교탁반전·배경 적용한 좌석표를 별도 비주얼로 구성해 이미지로 렌더.
         var sections = ChartBuilder.Build(snapshot, skin, flip);
-        var visual = BuildChart(title, sections, skin, flip);
+        var visual = BuildChart(title, sections, skin, flip, background);
         visual.Measure(Size.Infinity);
         visual.Arrange(new Rect(visual.DesiredSize));
         var size = visual.DesiredSize;
@@ -84,11 +104,12 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
             await launcher.LaunchFileInfoAsync(new FileInfo(path));
     }
 
-    public static Control BuildChart(string title, IReadOnlyList<SeatSectionViewModel> sections, ChartSkin skin, bool flip)
+    public static Control BuildChart(string title, IReadOnlyList<SeatSectionViewModel> sections,
+        ChartSkin skin, bool flip, Bitmap? background = null)
     {
         var root = new StackPanel
         {
-            Background = skin.PageBackground,
+            Background = background is null ? skin.PageBackground : Brushes.Transparent,
             Margin = new Thickness(28),
             Spacing = 8,
         };
@@ -153,7 +174,14 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
         }
         root.Children.Add(secPanel);
         if (flip) root.Children.Add(Board()); // 교탁반전: 칠판을 아래쪽에
-        return root;
+
+        if (background is null) return root;
+
+        // 커스텀 배경 위에 좌석표 합성.
+        var grid = new Grid();
+        grid.Children.Add(new Image { Source = background, Stretch = Avalonia.Media.Stretch.UniformToFill });
+        grid.Children.Add(root);
+        return grid;
     }
 
     public async Task OpenFolderAsync(string path)
