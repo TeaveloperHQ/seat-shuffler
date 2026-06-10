@@ -135,9 +135,26 @@ public sealed class RosterImportService
                 result.Warnings.Add($"{r + 1}행: 성별 '{genderTok}' 인식 실패 → 미지정.");
 
             var student = new Student { StudentNumber = num, Name = name, Gender = gender };
-            if (!seenKeys.Add(student.Key))
-                result.Warnings.Add($"{r + 1}행: 중복 식별키 '{student.Key}'.");
 
+            if (string.IsNullOrWhiteSpace(num))
+            {
+                // 학번이 없으면 이름이 식별키 → 동명이인은 '이름(2)'로 자동 구분.
+                if (seenKeys.Contains(student.Key))
+                {
+                    string baseName = name.Trim();
+                    int n = 2;
+                    while (seenKeys.Contains($"{baseName}({n})")) n++;
+                    student.Name = $"{baseName}({n})";
+                    result.Warnings.Add($"동명이인 '{baseName}' → '{student.Name}'(으)로 구분(학번 없음).");
+                }
+            }
+            else if (seenKeys.Contains(student.Key))
+            {
+                // 학번이 같으면 같은 사람으로 취급되므로 경고(학번 수정 필요).
+                result.Warnings.Add($"중복 학번 '{student.Key}' — 두 학생이 같은 사람으로 취급됩니다. 학번을 수정하세요.");
+            }
+
+            seenKeys.Add(student.Key);
             result.Students.Add(student);
         }
 
