@@ -46,6 +46,9 @@
                 </ListBox>
                 <CheckBox Content="교탁 기준(좌석 거울반전)" IsChecked="{Binding FlipForTeacher}"
                           VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <CheckBox Content="셀 투명 배경" IsChecked="{Binding TransparentCells}"
+                          ToolTip.Tip="특이한 모양/투명 PNG 셀일 때 카드 배경·테두리 없이 이미지 그대로"
+                          VerticalAlignment="Center" Margin="0,0,16,0"/>
                 <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="0,0,16,0">
                     <Button Content="배경" Command="{Binding LoadBackgroundCommand}"/>
                     <Button Content="✕" Command="{Binding ClearBackgroundCommand}" IsEnabled="{Binding HasBackground}" Padding="7,4"/>
@@ -94,9 +97,9 @@
                                                             <Border Background="{Binding Background}"
                                                                     BorderBrush="{Binding Border}" BorderThickness="{Binding BorderThickness}"
                                                                     CornerRadius="8" Margin="{Binding Margin}" Width="92" Height="58"
-                                                                    ClipToBounds="True">
+                                                                    ClipToBounds="{Binding CellClip}">
                                                                 <Grid>
-                                                                    <Image Source="{Binding CellImage}" Stretch="UniformToFill"
+                                                                    <Image Source="{Binding CellImage}" Stretch="{Binding CellStretch}"
                                                                            IsVisible="{Binding HasCellImage}"/>
                                                                     <StackPanel VerticalAlignment="Center">
                                                                         <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"

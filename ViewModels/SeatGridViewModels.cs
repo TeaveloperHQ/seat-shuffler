@@ -26,6 +26,10 @@ public sealed class SeatSlotViewModel
     public Bitmap? CellImage { get; init; }
     public bool HasCellImage => CellImage is not null;
 
+    /// <summary>셀 이미지 채움 방식·둥근 클립(투명 모드면 Uniform·클립 해제).</summary>
+    public Stretch CellStretch { get; init; } = Stretch.UniformToFill;
+    public bool CellClip { get; init; } = true;
+
     public static IBrush BrushFor(Gender g, bool empty) => empty
         ? new SolidColorBrush(Color.Parse("#F0F0F0"))
         : g switch

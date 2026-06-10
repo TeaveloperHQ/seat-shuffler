@@ -34,6 +34,7 @@ public partial class DecorateViewModel : ViewModelBase
     [ObservableProperty] private ChartSource? _selectedSource;
     [ObservableProperty] private ChartSkin? _selectedSkin;
     [ObservableProperty] private bool _flipForTeacher;
+    [ObservableProperty] private bool _transparentCells;
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private IBrush _previewBackground = Brushes.White;
     [ObservableProperty] private Bitmap? _previewBackgroundImage;
@@ -64,6 +65,7 @@ public partial class DecorateViewModel : ViewModelBase
         _loading = true;
         SelectedSkin = ChartSkin.ById(_state.Settings.SkinId);
         FlipForTeacher = _state.Settings.FlipForTeacher;
+        TransparentCells = _state.Settings.TransparentCells;
         ReloadImages();
         _loading = false;
     }
@@ -115,6 +117,7 @@ public partial class DecorateViewModel : ViewModelBase
         if (_loading) return;
         _state.Settings.SkinId = SelectedSkin?.Id ?? "basic";
         _state.Settings.FlipForTeacher = FlipForTeacher;
+        _state.Settings.TransparentCells = TransparentCells;
         _state.SaveConstraints();
     }
 
@@ -152,6 +155,7 @@ public partial class DecorateViewModel : ViewModelBase
 
     partial void OnSelectedSkinChanged(ChartSkin? value) { SaveSettings(); RenderPreview(); }
     partial void OnFlipForTeacherChanged(bool value) { SaveSettings(); RenderPreview(); }
+    partial void OnTransparentCellsChanged(bool value) { SaveSettings(); RenderPreview(); }
     partial void OnSelectedSourceChanged(ChartSource? value) { if (!_loading) RenderPreview(); }
 
     private void RenderPreview()
@@ -168,7 +172,7 @@ public partial class DecorateViewModel : ViewModelBase
             return;
         }
 
-        foreach (var sec in ChartBuilder.Build(snap, skin, FlipForTeacher, _maleCellBitmap, _femaleCellBitmap))
+        foreach (var sec in ChartBuilder.Build(snap, skin, FlipForTeacher, _maleCellBitmap, _femaleCellBitmap, TransparentCells))
             PreviewSections.Add(sec);
         CanExport = true;
         Status = FlipForTeacher
@@ -185,7 +189,7 @@ public partial class DecorateViewModel : ViewModelBase
         if (snap is null) return;
         await _ui.ExportSeatChartAsync(
             "자리 배치표", snap, SelectedSkin ?? ChartSkin.Presets[0], FlipForTeacher,
-            _backgroundBitmap, _maleCellBitmap, _femaleCellBitmap);
+            _backgroundBitmap, _maleCellBitmap, _femaleCellBitmap, TransparentCells);
     }
 
     /// <summary>탭 진입 시 호출 — 소스 목록(최신 기록 포함)·미리보기 갱신.</summary>

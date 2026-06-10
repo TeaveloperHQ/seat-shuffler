@@ -49,4 +49,7 @@ public sealed class AssignmentSettings
     /// <summary>남자리/여자리 셀 이미지 경로(없으면 스킨 카드색 사용).</summary>
     public string? MaleCellImagePath { get; set; }
     public string? FemaleCellImagePath { get; set; }
+
+    /// <summary>셀 이미지를 투명 배경으로(테두리·둥근클립 없이 이미지 모양 그대로).</summary>
+    public bool TransparentCells { get; set; }
 }

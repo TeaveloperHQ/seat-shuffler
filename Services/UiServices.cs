@@ -34,7 +34,7 @@ public interface IExportService
 {
     /// <summary>좌석표를 스킨·교탁반전·배경/셀 이미지 적용해 PNG로 저장하고 기본 뷰어로 연다.</summary>
     Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
-        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell);
+        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells);
 
     /// <summary>커스텀 배경 이미지 파일을 선택해 로컬 경로를 돌려준다.</summary>
     Task<string?> PickImageAsync();
@@ -69,13 +69,13 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
     }
 
     public async Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
-        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell)
+        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells)
     {
         var sp = Owner?.StorageProvider;
         if (sp is null) return;
 
         // 스킨·교탁반전·배경·셀 이미지 적용한 좌석표를 별도 비주얼로 구성해 렌더.
-        var sections = ChartBuilder.Build(snapshot, skin, flip, maleCell, femaleCell);
+        var sections = ChartBuilder.Build(snapshot, skin, flip, maleCell, femaleCell, transparentCells);
         var visual = BuildChart(title, sections, skin, flip, background);
         visual.Measure(Size.Infinity);
         visual.Arrange(new Rect(visual.DesiredSize));
@@ -167,7 +167,7 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
                     if (seat.CellImage is { } cell)
                     {
                         var cg = new Grid();
-                        cg.Children.Add(new Image { Source = cell, Stretch = Avalonia.Media.Stretch.UniformToFill });
+                        cg.Children.Add(new Image { Source = cell, Stretch = seat.CellStretch });
                         cg.Children.Add(text);
                         content = cg;
                     }
@@ -175,7 +175,7 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
                     {
                         Background = seat.Background, BorderBrush = seat.Border,
                         BorderThickness = seat.BorderThickness, CornerRadius = new CornerRadius(8),
-                        Margin = seat.Margin, Width = 92, Height = 58, ClipToBounds = true,
+                        Margin = seat.Margin, Width = 92, Height = 58, ClipToBounds = seat.CellClip,
                         Child = content,
                     });
                 }
