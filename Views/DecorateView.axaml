@@ -13,80 +13,71 @@
 
     <Grid RowDefinitions="Auto,*,Auto" Margin="12">
         <!-- 스킨 + 옵션 + 출력 -->
-        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+        <Border Grid.Row="0" Background="#F4F5F7" CornerRadius="8" Padding="10" Margin="0,0,0,8">
+            <WrapPanel Orientation="Horizontal">
 
-            <!-- 1) 불러오기 -->
-            <Border Background="#F4F5F7" CornerRadius="8" Padding="12" Margin="0,0,8,8">
-                <StackPanel Spacing="6">
-                    <TextBlock Text="① 불러오기" FontWeight="SemiBold" Foreground="#555"/>
-                    <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" Width="260">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate DataType="vm:ChartSource"><TextBlock Text="{Binding Label}"/></DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                </StackPanel>
-            </Border>
+                <!-- 불러오기 -->
+                <TextBlock Text="불러오기" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}"
+                          Width="240" VerticalAlignment="Center">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="vm:ChartSource"><TextBlock Text="{Binding Label}"/></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
 
-            <!-- 2) 스킨 -->
-            <Border Background="#F4F5F7" CornerRadius="8" Padding="12" Margin="0,0,8,8">
-                <StackPanel Spacing="6">
-                    <TextBlock Text="② 스킨 (좌석표 색)" FontWeight="SemiBold" Foreground="#555"/>
-                    <ListBox ItemsSource="{Binding Skins}" SelectedItem="{Binding SelectedSkin}"
-                             Background="Transparent" BorderThickness="0">
-                        <ListBox.ItemsPanel>
-                            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" MaxWidth="430"/></ItemsPanelTemplate>
-                        </ListBox.ItemsPanel>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="vm:ChartSkin">
-                                <StackPanel Margin="2" HorizontalAlignment="Center">
-                                    <Border Width="64" Height="30" CornerRadius="5" BorderBrush="#CCC" BorderThickness="1"
-                                            Background="{Binding PageBackground}">
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="3">
-                                            <Border Width="12" Height="12" CornerRadius="3" Background="{Binding MaleSeat}"/>
-                                            <Border Width="12" Height="12" CornerRadius="3" Background="{Binding FemaleSeat}"/>
-                                            <Border Width="12" Height="12" CornerRadius="3" Background="{Binding BoardBackground}"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <TextBlock Text="{Binding Name}" FontSize="11" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </StackPanel>
-            </Border>
+                <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,0" VerticalAlignment="Center"/>
 
-            <!-- 3) 커스텀 이미지 -->
-            <Border Background="#F4F5F7" CornerRadius="8" Padding="12" Margin="0,0,8,8">
-                <StackPanel Spacing="6">
-                    <TextBlock Text="③ 커스텀 이미지" FontWeight="SemiBold" Foreground="#555"/>
-                    <StackPanel Orientation="Horizontal" Spacing="2">
-                        <Button Content="배경" Command="{Binding LoadBackgroundCommand}"/>
-                        <Button Content="✕" Command="{Binding ClearBackgroundCommand}" IsEnabled="{Binding HasBackground}" Padding="7,4"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="2">
-                        <Button Content="남자리 셀" Command="{Binding LoadMaleCellCommand}"/>
-                        <Button Content="✕" Command="{Binding ClearMaleCellCommand}" IsEnabled="{Binding HasMaleCell}" Padding="7,4"/>
-                        <Border Width="6"/>
-                        <Button Content="여자리 셀" Command="{Binding LoadFemaleCellCommand}"/>
-                        <Button Content="✕" Command="{Binding ClearFemaleCellCommand}" IsEnabled="{Binding HasFemaleCell}" Padding="7,4"/>
-                    </StackPanel>
-                    <CheckBox Content="셀 투명 배경" IsChecked="{Binding TransparentCells}"
+                <!-- 스킨 (라벨 생략) -->
+                <ListBox ItemsSource="{Binding Skins}" SelectedItem="{Binding SelectedSkin}"
+                         Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="vm:ChartSkin">
+                            <StackPanel Margin="2" HorizontalAlignment="Center">
+                                <Border Width="60" Height="28" CornerRadius="5" BorderBrush="#CCC" BorderThickness="1"
+                                        Background="{Binding PageBackground}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="3">
+                                        <Border Width="11" Height="11" CornerRadius="3" Background="{Binding MaleSeat}"/>
+                                        <Border Width="11" Height="11" CornerRadius="3" Background="{Binding FemaleSeat}"/>
+                                        <Border Width="11" Height="11" CornerRadius="3" Background="{Binding BoardBackground}"/>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="{Binding Name}" FontSize="11" HorizontalAlignment="Center" Margin="0,1,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,0" VerticalAlignment="Center"/>
+
+                <!-- 커스텀 이미지 -->
+                <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                    <Button Content="배경" Command="{Binding LoadBackgroundCommand}"/>
+                    <Button Content="✕" Command="{Binding ClearBackgroundCommand}" IsEnabled="{Binding HasBackground}" Padding="7,4"/>
+                    <Border Width="6"/>
+                    <Button Content="남자리 셀" Command="{Binding LoadMaleCellCommand}"/>
+                    <Button Content="✕" Command="{Binding ClearMaleCellCommand}" IsEnabled="{Binding HasMaleCell}" Padding="7,4"/>
+                    <Border Width="6"/>
+                    <Button Content="여자리 셀" Command="{Binding LoadFemaleCellCommand}"/>
+                    <Button Content="✕" Command="{Binding ClearFemaleCellCommand}" IsEnabled="{Binding HasFemaleCell}" Padding="7,4"/>
+                    <Border Width="6"/>
+                    <CheckBox Content="셀 투명 배경" IsChecked="{Binding TransparentCells}" VerticalAlignment="Center"
                               ToolTip.Tip="특이한 모양/투명 PNG 셀일 때 카드 배경·테두리 없이 이미지 그대로. 불투명 이미지는 단색 배경 자동 제거."/>
                 </StackPanel>
-            </Border>
 
-            <!-- 4) 출력 -->
-            <Border Background="#F4F5F7" CornerRadius="8" Padding="12" Margin="0,0,0,8">
-                <StackPanel Spacing="6">
-                    <TextBlock Text="④ 출력" FontWeight="SemiBold" Foreground="#555"/>
-                    <CheckBox Content="칠판 표시" IsChecked="{Binding ShowBoard}"/>
-                    <CheckBox Content="교탁 기준(좌석 거울반전)" IsChecked="{Binding FlipForTeacher}"/>
-                    <Button Content="출력(PNG)" Command="{Binding ExportCommand}"
-                            HorizontalAlignment="Stretch" Padding="20,8" FontWeight="SemiBold"/>
-                </StackPanel>
-            </Border>
+                <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,0" VerticalAlignment="Center"/>
 
-        </WrapPanel>
+                <!-- 출력 -->
+                <CheckBox Content="칠판 표시" IsChecked="{Binding ShowBoard}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <CheckBox Content="교탁 기준" IsChecked="{Binding FlipForTeacher}" VerticalAlignment="Center" Margin="0,0,10,0"
+                          ToolTip.Tip="좌석을 거울반전하고 칠판을 아래로(교탁에서 본 방향)"/>
+                <Button Content="출력(PNG)" Command="{Binding ExportCommand}"
+                        Padding="18,7" FontWeight="SemiBold" VerticalAlignment="Center"/>
+
+            </WrapPanel>
+        </Border>
 
         <!-- 미리보기 -->
         <Border Grid.Row="1" Background="{Binding PreviewBackground}" CornerRadius="8" BorderBrush="#DDD"
