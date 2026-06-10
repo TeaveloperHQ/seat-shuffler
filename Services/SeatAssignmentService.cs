@@ -30,7 +30,7 @@ public sealed class SeatAssignmentService
 
     private readonly record struct Constraints(
         bool Gender, bool SameSeat, bool SamePair, bool FrontRow, bool GenderSeat,
-        bool Forbidden, bool Required);
+        bool Forbidden, bool Required, bool Fixed, bool Avoid);
 
     public AssignmentResult Assign(
         IReadOnlyList<Student> roster,
@@ -96,11 +96,35 @@ public sealed class SeatAssignmentService
             .Where(kv => seatPositions.Contains(kv.Key) && kv.Value != Gender.Unspecified)
             .ToDictionary(kv => kv.Key, kv => kv.Value);
 
+        // 자리 고정: 학생→좌석, 좌석→학생 (충돌·범위밖·빈자리 무시).
+        var fixedOf = new Dictionary<string, SeatPosition>();
+        var fixedAt = new Dictionary<SeatPosition, string>();
+        foreach (var pin in constraints.FixedSeats)
+        {
+            var pos = pin.Position;
+            if (!keys.Contains(pin.StudentKey) || !seatPositions.Contains(pos)) continue;
+            if (fixedOf.ContainsKey(pin.StudentKey) || fixedAt.ContainsKey(pos)) continue;
+            fixedOf[pin.StudentKey] = pos;
+            fixedAt[pos] = pin.StudentKey;
+        }
+
+        // 자리 회피: 학생→피할 좌석들.
+        var avoidOf = new Dictionary<string, HashSet<SeatPosition>>();
+        foreach (var pin in constraints.AvoidedSeats)
+        {
+            var pos = pin.Position;
+            if (!keys.Contains(pin.StudentKey) || !seatPositions.Contains(pos)) continue;
+            if (!avoidOf.TryGetValue(pin.StudentKey, out var set)) { set = new(); avoidOf[pin.StudentKey] = set; }
+            set.Add(pos);
+        }
+
         bool hasGender = config.HasPairs;
         bool hasFront = frontRowKeys.Count > 0;
         bool hasGenderSeat = effectiveGenderSeats.Count > 0;
         bool hasForbidden = forbiddenDeskmate.Count > 0 || apartDist.Count > 0;
         bool hasRequired = requiredPartner.Count > 0 || closeDist.Count > 0;
+        bool hasFixed = fixedOf.Count > 0;
+        bool hasAvoid = avoidOf.Count > 0;
 
         var top = new Constraints(
             Gender: hasGender,
@@ -109,13 +133,16 @@ public sealed class SeatAssignmentService
             FrontRow: hasFront,
             GenderSeat: hasGenderSeat,
             Forbidden: hasForbidden,
-            Required: hasRequired);
+            Required: hasRequired,
+            Fixed: hasFixed,
+            Avoid: hasAvoid);
 
         foreach (var level in BuildLadder(top, constraints.EffectivePriority()))
         {
             var solver = new Solver(students, layout, level, config.PairMode,
                 forbiddenSeat, historyPair, forbiddenDeskmate, apartDist, requiredPartner, closeDist,
-                frontRowKeys, frontRowCount, effectiveGenderSeats, config.Cols, seed, NodeBudget);
+                frontRowKeys, frontRowCount, effectiveGenderSeats, fixedOf, fixedAt, avoidOf,
+                config.Cols, seed, NodeBudget);
 
             if (solver.Solve(out var seatToKey))
             {
@@ -128,6 +155,8 @@ public sealed class SeatAssignmentService
                     RelaxedGenderSeat = hasGenderSeat && !level.GenderSeat,
                     RelaxedForbiddenPair = hasForbidden && !level.Forbidden,
                     RelaxedRequiredPair = hasRequired && !level.Required,
+                    RelaxedFixedSeat = hasFixed && !level.Fixed,
+                    RelaxedAvoidSeat = hasAvoid && !level.Avoid,
                 };
                 return new AssignmentResult
                 {
@@ -169,6 +198,8 @@ public sealed class SeatAssignmentService
         ConstraintKind.GenderSeat => c.GenderSeat,
         ConstraintKind.ForbiddenPair => c.Forbidden,
         ConstraintKind.RequiredPair => c.Required,
+        ConstraintKind.FixedSeat => c.Fixed,
+        ConstraintKind.AvoidSeat => c.Avoid,
         _ => false,
     };
 
@@ -181,6 +212,8 @@ public sealed class SeatAssignmentService
         ConstraintKind.GenderSeat => c with { GenderSeat = false },
         ConstraintKind.ForbiddenPair => c with { Forbidden = false },
         ConstraintKind.RequiredPair => c with { Required = false },
+        ConstraintKind.FixedSeat => c with { Fixed = false },
+        ConstraintKind.AvoidSeat => c with { Avoid = false },
         _ => c,
     };
 
@@ -237,6 +270,9 @@ public sealed class SeatAssignmentService
         private readonly HashSet<string> _frontRowKeys;
         private readonly int _frontRowCount;
         private readonly Dictionary<SeatPosition, Gender> _genderSeats;
+        private readonly Dictionary<string, SeatPosition> _fixedOf;
+        private readonly Dictionary<SeatPosition, string> _fixedAt;
+        private readonly Dictionary<string, HashSet<SeatPosition>> _avoidOf;
         private readonly int _cols;
         private readonly int _budget;
         private readonly Dictionary<SeatPosition, string> _placed = new();
@@ -250,12 +286,16 @@ public sealed class SeatAssignmentService
             HashSet<string> forbiddenDeskmate, Dictionary<string, List<(string, int)>> apartDist,
             Dictionary<string, string> requiredPartner, Dictionary<string, List<(string, int)>> closeDist,
             HashSet<string> frontRowKeys, int frontRowCount,
-            Dictionary<SeatPosition, Gender> genderSeats, int cols, long seed, int budget)
+            Dictionary<SeatPosition, Gender> genderSeats,
+            Dictionary<string, SeatPosition> fixedOf, Dictionary<SeatPosition, string> fixedAt,
+            Dictionary<string, HashSet<SeatPosition>> avoidOf,
+            int cols, long seed, int budget)
         {
             var rng = new Random(unchecked((int)seed));
-            // 제약이 강한 학생(앞자리·짝필수·거리제약)을 먼저 배치 → 깊은 백트래킹 감소.
+            // 제약이 강한 학생(앞자리·짝필수·거리·고정·회피)을 먼저 배치 → 깊은 백트래킹 감소.
             bool Priority(Student s) => frontRowKeys.Contains(s.Key) || requiredPartner.ContainsKey(s.Key)
-                || apartDist.ContainsKey(s.Key) || closeDist.ContainsKey(s.Key);
+                || apartDist.ContainsKey(s.Key) || closeDist.ContainsKey(s.Key)
+                || fixedOf.ContainsKey(s.Key) || avoidOf.ContainsKey(s.Key);
             var shuffled = students.ToArray();
             Shuffle(shuffled, rng);
             _students = shuffled.Where(Priority).Concat(shuffled.Where(s => !Priority(s))).ToArray();
@@ -277,6 +317,9 @@ public sealed class SeatAssignmentService
             _frontRowKeys = frontRowKeys;
             _frontRowCount = frontRowCount;
             _genderSeats = genderSeats;
+            _fixedOf = fixedOf;
+            _fixedAt = fixedAt;
+            _avoidOf = avoidOf;
             _cols = cols;
             _budget = budget;
         }
@@ -344,6 +387,15 @@ public sealed class SeatAssignmentService
             if (_c.SameSeat && _forbiddenSeat.Contains((s.Key, pos.Key))) return false;
             if (_c.FrontRow && _frontRowKeys.Contains(s.Key) && pos.Row >= _frontRowCount) return false;
             if (_c.GenderSeat && _genderSeats.TryGetValue(pos, out var g) && s.Gender != g) return false;
+
+            // 자리 고정: 이 학생은 지정 좌석에만, 이 좌석은 지정 학생만.
+            if (_c.Fixed)
+            {
+                if (_fixedOf.TryGetValue(s.Key, out var fp) && !fp.Equals(pos)) return false;
+                if (_fixedAt.TryGetValue(pos, out var owner) && owner != s.Key) return false;
+            }
+            // 자리 회피: 이 학생이 피해야 할 좌석.
+            if (_c.Avoid && _avoidOf.TryGetValue(s.Key, out var av) && av.Contains(pos)) return false;
 
             // 가급적 멀리: 이미 배치된 상대와 최소 거리 확보.
             if (_c.Forbidden && _apartDist.TryGetValue(s.Key, out var aps))

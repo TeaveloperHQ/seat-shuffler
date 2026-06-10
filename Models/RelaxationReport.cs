@@ -12,10 +12,13 @@ public sealed class RelaxationReport
     public bool RelaxedGenderSeat { get; set; }
     public bool RelaxedForbiddenPair { get; set; }
     public bool RelaxedRequiredPair { get; set; }
+    public bool RelaxedFixedSeat { get; set; }
+    public bool RelaxedAvoidSeat { get; set; }
 
     public bool AnyRelaxed =>
         RelaxedGenderPairing || RelaxedSameSeat || RelaxedSamePair ||
-        RelaxedFrontRow || RelaxedGenderSeat || RelaxedForbiddenPair || RelaxedRequiredPair;
+        RelaxedFrontRow || RelaxedGenderSeat || RelaxedForbiddenPair || RelaxedRequiredPair ||
+        RelaxedFixedSeat || RelaxedAvoidSeat;
 
     /// <summary>완화 사다리 순서(성별 → 같은자리 → 같은짝 → 앞자리 → 짝금지 → 짝필수)대로 안내.</summary>
     public string Summary
@@ -31,6 +34,8 @@ public sealed class RelaxationReport
             if (RelaxedGenderSeat) parts.Add("남녀 자리 지정");
             if (RelaxedForbiddenPair) parts.Add("가급적 멀리");
             if (RelaxedRequiredPair) parts.Add("가급적 가깝게");
+            if (RelaxedFixedSeat) parts.Add("자리 고정");
+            if (RelaxedAvoidSeat) parts.Add("자리 회피");
             return $"제약 완화: {string.Join(", ", parts)} 조건을 모두 만족할 수 없어 완화했습니다.";
         }
     }

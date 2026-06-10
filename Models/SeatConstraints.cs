@@ -18,6 +18,12 @@ public sealed class SeatConstraints
     /// <summary>'앞자리'로 간주하는 앞쪽 행 수(맨 앞부터).</summary>
     public int FrontRowCount { get; set; } = 1;
 
+    /// <summary>특정 학생을 특정 좌석에 고정.</summary>
+    public List<SeatPin> FixedSeats { get; set; } = new();
+
+    /// <summary>특정 학생이 특정 좌석을 회피(절대 안 앉음).</summary>
+    public List<SeatPin> AvoidedSeats { get; set; } = new();
+
     /// <summary>제약(4종) 충돌 시 완화 우선순위(앞=높음=나중에 완화). 비어 있으면 기본값.</summary>
     public List<ConstraintKind> Priority { get; set; } = new();
 

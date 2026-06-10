@@ -28,6 +28,13 @@ public sealed class LevelOption
     public string Label { get; init; } = "";
 }
 
+/// <summary>자리 고정/회피 행 표시용.</summary>
+public sealed class SeatPinRow
+{
+    public required SeatPin Pin { get; init; }
+    public string Display { get; init; } = "";
+}
+
 /// <summary>제약 카드 1개(설정 + 드래그 우선순위). Owner로 부모 VM 데이터에 바인딩.</summary>
 public sealed class ConstraintCardViewModel
 {
@@ -39,6 +46,8 @@ public sealed class ConstraintCardViewModel
     public bool IsRequired => Kind == ConstraintKind.RequiredPair;
     public bool IsFront => Kind == ConstraintKind.FrontRow;
     public bool IsGenderSeat => Kind == ConstraintKind.GenderSeat;
+    public bool IsFixed => Kind == ConstraintKind.FixedSeat;
+    public bool IsAvoid => Kind == ConstraintKind.AvoidSeat;
 }
 
 public partial class ConstraintsViewModel : ViewModelBase
@@ -51,6 +60,8 @@ public partial class ConstraintsViewModel : ViewModelBase
     public ObservableCollection<PairRow> ForbiddenRows { get; } = new();
     public ObservableCollection<PairRow> RequiredRows { get; } = new();
     public ObservableCollection<FrontRow> FrontRows { get; } = new();
+    public ObservableCollection<SeatPinRow> FixedRows { get; } = new();
+    public ObservableCollection<SeatPinRow> AvoidRows { get; } = new();
     public ObservableCollection<ConstraintCardViewModel> Cards { get; } = new();
 
     [ObservableProperty] private Student? _forbiddenA;
@@ -73,6 +84,19 @@ public partial class ConstraintsViewModel : ViewModelBase
     };
     [ObservableProperty] private LevelOption? _selectedApartLevel;
     [ObservableProperty] private LevelOption? _selectedCloseLevel;
+
+    // 자리 고정/회피 입력 (좌표는 1-based 표시)
+    [ObservableProperty] private Student? _fixedStudent;
+    [ObservableProperty] private decimal _fixedSection = 1;
+    [ObservableProperty] private decimal _fixedRow = 1;
+    [ObservableProperty] private decimal _fixedCol = 1;
+    [ObservableProperty] private SeatPinRow? _selectedFixed;
+
+    [ObservableProperty] private Student? _avoidStudent;
+    [ObservableProperty] private decimal _avoidSection = 1;
+    [ObservableProperty] private decimal _avoidRow = 1;
+    [ObservableProperty] private decimal _avoidCol = 1;
+    [ObservableProperty] private SeatPinRow? _selectedAvoid;
 
     [ObservableProperty] private PairRow? _selectedForbidden;
     [ObservableProperty] private PairRow? _selectedRequired;
@@ -226,6 +250,14 @@ public partial class ConstraintsViewModel : ViewModelBase
         foreach (var k in C.FrontRowStudents)
             FrontRows.Add(new FrontRow { Key = k, Display = NameOf(k) });
 
+        FixedRows.Clear();
+        foreach (var p in C.FixedSeats)
+            FixedRows.Add(new SeatPinRow { Pin = p, Display = $"{NameOf(p.StudentKey)}  →  {PinLabel(p)}" });
+
+        AvoidRows.Clear();
+        foreach (var p in C.AvoidedSeats)
+            AvoidRows.Add(new SeatPinRow { Pin = p, Display = $"{NameOf(p.StudentKey)}  ⊘  {PinLabel(p)}" });
+
         UpdateStatus();
     }
 
@@ -293,6 +325,64 @@ public partial class ConstraintsViewModel : ViewModelBase
         Rebuild();
     }
 
+    private static string PinLabel(SeatPin p) => $"{p.Section + 1}분단 {p.Row + 1}행 {p.Col + 1}열";
+
+    // 입력 좌표(1-based)를 검증 후 0-based SeatPin으로. 실패 시 null.
+    private SeatPin? MakePin(Student? s, decimal sec, decimal row, decimal col)
+    {
+        if (s is null) { Status = "학생을 선택하세요."; return null; }
+        int S = (int)sec - 1, R = (int)row - 1, C0 = (int)col - 1;
+        var st = _state.Settings;
+        if (S < 0 || S >= st.Sections || R < 0 || R >= st.Rows || C0 < 0 || C0 >= st.Cols)
+        {
+            Status = $"좌석이 그리드 범위를 벗어났습니다. (분단 1~{st.Sections}, 행 1~{st.Rows}, 열 1~{st.Cols})";
+            return null;
+        }
+        return new SeatPin { StudentKey = s.Key, Section = S, Row = R, Col = C0 };
+    }
+
+    [RelayCommand]
+    private void AddFixed()
+    {
+        var pin = MakePin(FixedStudent, FixedSection, FixedRow, FixedCol);
+        if (pin is null) return;
+        if (C.FixedSeats.Any(x => x.Key == pin.Key)) { Status = "이미 등록된 고정입니다."; return; }
+        C.FixedSeats.Add(pin);
+        _state.SaveConstraints();
+        FixedStudent = null;
+        Rebuild();
+    }
+
+    [RelayCommand]
+    private void RemoveFixed()
+    {
+        if (SelectedFixed is null) return;
+        C.FixedSeats.RemoveAll(x => x.Key == SelectedFixed.Pin.Key);
+        _state.SaveConstraints();
+        Rebuild();
+    }
+
+    [RelayCommand]
+    private void AddAvoid()
+    {
+        var pin = MakePin(AvoidStudent, AvoidSection, AvoidRow, AvoidCol);
+        if (pin is null) return;
+        if (C.AvoidedSeats.Any(x => x.Key == pin.Key)) { Status = "이미 등록된 회피입니다."; return; }
+        C.AvoidedSeats.Add(pin);
+        _state.SaveConstraints();
+        AvoidStudent = null;
+        Rebuild();
+    }
+
+    [RelayCommand]
+    private void RemoveAvoid()
+    {
+        if (SelectedAvoid is null) return;
+        C.AvoidedSeats.RemoveAll(x => x.Key == SelectedAvoid.Pin.Key);
+        _state.SaveConstraints();
+        Rebuild();
+    }
+
     private void RebuildCards()
     {
         C.Priority = C.ConstraintPriority(); // 제약 4종만, 누락분 보강해 영속 일관성 유지
@@ -320,5 +410,5 @@ public partial class ConstraintsViewModel : ViewModelBase
     }
 
     private void UpdateStatus() =>
-        Status = $"짝 금지 {ForbiddenRows.Count} · 짝 필수 {RequiredRows.Count} · 앞자리 {FrontRows.Count}";
+        Status = $"멀리 {ForbiddenRows.Count} · 가깝게 {RequiredRows.Count} · 앞자리 {FrontRows.Count} · 고정 {FixedRows.Count} · 회피 {AvoidRows.Count}";
 }

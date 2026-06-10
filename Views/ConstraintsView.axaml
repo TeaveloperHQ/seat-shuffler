@@ -198,6 +198,50 @@
                                         <TextBlock Text="'좌석 설정' 탭에서 좌석을 남자리/여자리로 칠해 지정합니다. 여기서는 우선순위만 정합니다."
                                                    Foreground="#666" FontSize="12" TextWrapping="Wrap"/>
                                     </StackPanel>
+
+                                    <!-- 자리 고정 -->
+                                    <StackPanel IsVisible="{Binding IsFixed}" Spacing="8">
+                                        <WrapPanel Orientation="Horizontal">
+                                            <ComboBox ItemsSource="{Binding Owner.Students}" SelectedItem="{Binding Owner.FixedStudent}"
+                                                      ItemTemplate="{StaticResource StudentItem}" Width="140" PlaceholderText="학생" Margin="0,0,8,6"/>
+                                            <TextBlock Text="분단" VerticalAlignment="Center" Margin="0,0,4,6"/>
+                                            <NumericUpDown Value="{Binding Owner.FixedSection}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <TextBlock Text="행" VerticalAlignment="Center" Margin="0,0,4,6"/>
+                                            <NumericUpDown Value="{Binding Owner.FixedRow}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <TextBlock Text="열" VerticalAlignment="Center" Margin="0,0,4,6"/>
+                                            <NumericUpDown Value="{Binding Owner.FixedCol}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <Button Content="추가" Command="{Binding Owner.AddFixedCommand}" Margin="0,0,6,6"/>
+                                            <Button Content="선택 삭제" Command="{Binding Owner.RemoveFixedCommand}" Margin="0,0,6,6"/>
+                                        </WrapPanel>
+                                        <ListBox ItemsSource="{Binding Owner.FixedRows}" SelectedItem="{Binding Owner.SelectedFixed}"
+                                                 MaxHeight="120" Background="White">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate DataType="vm:SeatPinRow"><TextBlock Text="{Binding Display}"/></DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </StackPanel>
+
+                                    <!-- 자리 회피 -->
+                                    <StackPanel IsVisible="{Binding IsAvoid}" Spacing="8">
+                                        <WrapPanel Orientation="Horizontal">
+                                            <ComboBox ItemsSource="{Binding Owner.Students}" SelectedItem="{Binding Owner.AvoidStudent}"
+                                                      ItemTemplate="{StaticResource StudentItem}" Width="140" PlaceholderText="학생" Margin="0,0,8,6"/>
+                                            <TextBlock Text="분단" VerticalAlignment="Center" Margin="0,0,4,6"/>
+                                            <NumericUpDown Value="{Binding Owner.AvoidSection}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <TextBlock Text="행" VerticalAlignment="Center" Margin="0,0,4,6"/>
+                                            <NumericUpDown Value="{Binding Owner.AvoidRow}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <TextBlock Text="열" VerticalAlignment="Center" Margin="0,0,4,6"/>
+                                            <NumericUpDown Value="{Binding Owner.AvoidCol}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <Button Content="추가" Command="{Binding Owner.AddAvoidCommand}" Margin="0,0,6,6"/>
+                                            <Button Content="선택 삭제" Command="{Binding Owner.RemoveAvoidCommand}" Margin="0,0,6,6"/>
+                                        </WrapPanel>
+                                        <ListBox ItemsSource="{Binding Owner.AvoidRows}" SelectedItem="{Binding Owner.SelectedAvoid}"
+                                                 MaxHeight="120" Background="White">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate DataType="vm:SeatPinRow"><TextBlock Text="{Binding Display}"/></DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>
