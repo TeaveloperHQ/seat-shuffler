@@ -79,8 +79,16 @@ public partial class DecorateViewModel : ViewModelBase
     private void ReloadImages()
     {
         _backgroundBitmap = TryLoad(_state.Settings.BackgroundImagePath);
-        _maleCellBitmap = TryLoad(_state.Settings.MaleCellImagePath);
-        _femaleCellBitmap = TryLoad(_state.Settings.FemaleCellImagePath);
+        var male = TryLoad(_state.Settings.MaleCellImagePath);
+        var female = TryLoad(_state.Settings.FemaleCellImagePath);
+        // 투명 배경 모드면 불투명 이미지의 모서리 배경색을 제거(누끼).
+        if (TransparentCells)
+        {
+            if (male is not null) male = ImageBackground.RemoveCornerBackground(male);
+            if (female is not null) female = ImageBackground.RemoveCornerBackground(female);
+        }
+        _maleCellBitmap = male;
+        _femaleCellBitmap = female;
         PreviewBackgroundImage = _backgroundBitmap;
         HasBackground = _backgroundBitmap is not null;
         HasMaleCell = _maleCellBitmap is not null;
@@ -155,7 +163,7 @@ public partial class DecorateViewModel : ViewModelBase
 
     partial void OnSelectedSkinChanged(ChartSkin? value) { SaveSettings(); RenderPreview(); }
     partial void OnFlipForTeacherChanged(bool value) { SaveSettings(); RenderPreview(); }
-    partial void OnTransparentCellsChanged(bool value) { SaveSettings(); RenderPreview(); }
+    partial void OnTransparentCellsChanged(bool value) { SaveSettings(); ReloadImages(); RenderPreview(); }
     partial void OnSelectedSourceChanged(ChartSource? value) { if (!_loading) RenderPreview(); }
 
     private void RenderPreview()
