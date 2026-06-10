@@ -27,25 +27,31 @@
 
                 <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,0" VerticalAlignment="Center"/>
 
-                <!-- 스킨 (라벨 생략) -->
+                <!-- 스킨 (라벨 생략) — 작게, 폭 모자라면 가로 슬라이드 -->
                 <ListBox ItemsSource="{Binding Skins}" SelectedItem="{Binding SelectedSkin}"
-                         Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
+                         Background="Transparent" BorderThickness="0" Padding="0" VerticalAlignment="Center"
+                         MaxWidth="300"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                         ScrollViewer.VerticalScrollBarVisibility="Disabled">
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
                     </ListBox.ItemsPanel>
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="Padding" Value="2"/>
+                            <Setter Property="MinHeight" Value="0"/>
+                        </Style>
+                    </ListBox.Styles>
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="vm:ChartSkin">
-                            <StackPanel Margin="2" HorizontalAlignment="Center">
-                                <Border Width="60" Height="28" CornerRadius="5" BorderBrush="#CCC" BorderThickness="1"
-                                        Background="{Binding PageBackground}">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="3">
-                                        <Border Width="11" Height="11" CornerRadius="3" Background="{Binding MaleSeat}"/>
-                                        <Border Width="11" Height="11" CornerRadius="3" Background="{Binding FemaleSeat}"/>
-                                        <Border Width="11" Height="11" CornerRadius="3" Background="{Binding BoardBackground}"/>
-                                    </StackPanel>
-                                </Border>
-                                <TextBlock Text="{Binding Name}" FontSize="11" HorizontalAlignment="Center" Margin="0,1,0,0"/>
-                            </StackPanel>
+                            <Border Width="40" Height="22" CornerRadius="4" BorderBrush="#CCC" BorderThickness="1"
+                                    Background="{Binding PageBackground}" ToolTip.Tip="{Binding Name}">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                                    <Border Width="8" Height="8" CornerRadius="2" Background="{Binding MaleSeat}"/>
+                                    <Border Width="8" Height="8" CornerRadius="2" Background="{Binding FemaleSeat}"/>
+                                    <Border Width="8" Height="8" CornerRadius="2" Background="{Binding BoardBackground}"/>
+                                </StackPanel>
+                            </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
