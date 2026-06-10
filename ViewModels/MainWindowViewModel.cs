@@ -33,6 +33,8 @@ public partial class MainWindowViewModel : ViewModelBase
         // 좌석 설정/배정 진입 시 공유 설정을 다시 반영.
         if (value == SeatSetupTabIndex)
             SeatSetup.Refresh();
+        else if (value == ConstraintsTabIndex)
+            Constraints.RefreshGridBounds();   // 좌석 설정 그리드를 입력 한계로 상속
         else if (value == AssignmentTabIndex)
             Assignment.Refresh();
     }

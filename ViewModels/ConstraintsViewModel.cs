@@ -98,6 +98,25 @@ public partial class ConstraintsViewModel : ViewModelBase
     [ObservableProperty] private decimal _avoidCol = 1;
     [ObservableProperty] private SeatPinRow? _selectedAvoid;
 
+    // 좌석 설정 탭의 그리드를 상속 — 분단/행/열 입력 최댓값.
+    public decimal MaxSections => System.Math.Max(1, _state.Settings.Sections);
+    public decimal MaxRows => System.Math.Max(1, _state.Settings.Rows);
+    public decimal MaxCols => System.Math.Max(1, _state.Settings.Cols);
+
+    /// <summary>제약 탭 진입 시 호출 — 좌석 설정이 바뀌었을 수 있어 한계 갱신·입력값 클램프.</summary>
+    public void RefreshGridBounds()
+    {
+        OnPropertyChanged(nameof(MaxSections));
+        OnPropertyChanged(nameof(MaxRows));
+        OnPropertyChanged(nameof(MaxCols));
+        FixedSection = System.Math.Min(FixedSection, MaxSections);
+        FixedRow = System.Math.Min(FixedRow, MaxRows);
+        FixedCol = System.Math.Min(FixedCol, MaxCols);
+        AvoidSection = System.Math.Min(AvoidSection, MaxSections);
+        AvoidRow = System.Math.Min(AvoidRow, MaxRows);
+        AvoidCol = System.Math.Min(AvoidCol, MaxCols);
+    }
+
     [ObservableProperty] private PairRow? _selectedForbidden;
     [ObservableProperty] private PairRow? _selectedRequired;
     [ObservableProperty] private FrontRow? _selectedFront;
@@ -218,6 +237,7 @@ public partial class ConstraintsViewModel : ViewModelBase
         _state.Roster.CollectionChanged += (_, _) => Rebuild();
         Rebuild();
         RebuildCards();
+        RefreshGridBounds();
     }
 
     // 디자인타임용
