@@ -36,4 +36,10 @@ public sealed class AssignmentSettings
 
     /// <summary>남자리/여자리로 지정한 좌석.</summary>
     public List<GenderSeatDto> GenderSeats { get; set; } = new();
+
+    /// <summary>출력 스킨 ID.</summary>
+    public string SkinId { get; set; } = "basic";
+
+    /// <summary>교탁 기준 출력(좌석 거울반전).</summary>
+    public bool FlipForTeacher { get; set; }
 }

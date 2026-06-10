@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
+using SeatShuffler.Models;
 using SeatShuffler.ViewModels;
 
 namespace SeatShuffler.Services;
@@ -31,8 +32,8 @@ public interface IDialogService
 
 public interface IExportService
 {
-    /// <summary>좌석표를 PNG로 저장하고 기본 뷰어로 연다.</summary>
-    Task ExportSeatChartAsync(string title, IReadOnlyList<SeatSectionViewModel> sections);
+    /// <summary>좌석표를 스킨·교탁반전 적용해 PNG로 저장하고 기본 뷰어로 연다.</summary>
+    Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip);
 }
 
 /// <summary>
@@ -46,13 +47,14 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
     private static readonly FontFamily ChartFont =
         new("굴림, Gulim, Malgun Gothic, Noto Sans CJK KR, Nanum Gothic, sans-serif");
 
-    public async Task ExportSeatChartAsync(string title, IReadOnlyList<SeatSectionViewModel> sections)
+    public async Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip)
     {
         var sp = Owner?.StorageProvider;
         if (sp is null) return;
 
-        // 화면과 동일한 좌석표를 별도 비주얼로 구성해 이미지로 렌더(스크롤 영향 없음).
-        var visual = BuildChart(title, sections);
+        // 스킨·교탁반전 적용한 좌석표를 별도 비주얼로 구성해 이미지로 렌더.
+        var sections = ChartBuilder.Build(snapshot, skin, flip);
+        var visual = BuildChart(title, sections, skin, flip);
         visual.Measure(Size.Infinity);
         visual.Arrange(new Rect(visual.DesiredSize));
         var size = visual.DesiredSize;
@@ -82,12 +84,11 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
             await launcher.LaunchFileInfoAsync(new FileInfo(path));
     }
 
-    public static Control BuildChart(string title, IReadOnlyList<SeatSectionViewModel> sections)
+    public static Control BuildChart(string title, IReadOnlyList<SeatSectionViewModel> sections, ChartSkin skin, bool flip)
     {
-        var gray = new SolidColorBrush(Color.Parse("#888888"));
         var root = new StackPanel
         {
-            Background = Brushes.White,
+            Background = skin.PageBackground,
             Margin = new Thickness(28),
             Spacing = 8,
         };
@@ -95,25 +96,26 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
         root.Children.Add(new Border { Height = 1 }); // 첫 자식 렌더 누락 회피용 스페이서
         root.Children.Add(new TextBlock
         {
-            Text = title, FontSize = 20, FontWeight = FontWeight.SemiBold,
-            Foreground = new SolidColorBrush(Color.Parse("#000000")),
+            Text = title, FontSize = 20, FontWeight = FontWeight.SemiBold, Foreground = skin.TitleColor,
         });
         root.Children.Add(new TextBlock
         {
-            Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm"), Foreground = gray, FontSize = 12,
-            Margin = new Thickness(0, 0, 0, 6),
+            Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm") + (flip ? "  ·  교탁 기준" : ""),
+            Foreground = skin.SubTitleColor, FontSize = 12, Margin = new Thickness(0, 0, 0, 6),
         });
-        root.Children.Add(new Border
+
+        Border Board() => new()
         {
-            Background = new SolidColorBrush(Color.Parse("#2E3B2E")),
+            Background = skin.BoardBackground,
             CornerRadius = new CornerRadius(4), Padding = new Thickness(6), Width = 240,
             HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 10),
             Child = new TextBlock
             {
-                Text = "칠판 (앞)", Foreground = new SolidColorBrush(Color.Parse("#CFE8CF")),
+                Text = "칠판 (앞)", Foreground = skin.BoardForeground,
                 HorizontalAlignment = HorizontalAlignment.Center, FontSize = 12,
             },
-        });
+        };
+        if (!flip) root.Children.Add(Board());   // 정방향: 칠판 위, 교탁반전: 칠판 아래
 
         var secPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
         foreach (var sec in sections)
@@ -122,7 +124,7 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
             col.Children.Add(new TextBlock
             {
                 Text = sec.Title, HorizontalAlignment = HorizontalAlignment.Center,
-                Foreground = gray, FontSize = 12, Margin = new Thickness(0, 0, 0, 4),
+                Foreground = skin.SectionTitle, FontSize = 12, Margin = new Thickness(0, 0, 0, 4),
             });
             foreach (var row in sec.Rows)
             {
@@ -150,6 +152,7 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
             secPanel.Children.Add(col);
         }
         root.Children.Add(secPanel);
+        if (flip) root.Children.Add(Board()); // 교탁반전: 칠판을 아래쪽에
         return root;
     }
 

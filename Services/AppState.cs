@@ -19,6 +19,9 @@ public sealed class AppState
     public AssignmentSettings Settings { get; }
     public SecuritySettings Security { get; }
 
+    /// <summary>마지막 배정 결과의 출력용 스냅샷(비영속). 꾸미기/출력 탭이 사용.</summary>
+    public ChartSnapshot? LastChart { get; set; }
+
     public AppState()
     {
         foreach (var s in _rosterStore.Load())

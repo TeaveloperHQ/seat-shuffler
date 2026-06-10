@@ -13,7 +13,6 @@ public partial class AssignmentViewModel : ViewModelBase
 {
     private readonly AppState _state;
     private readonly SeatAssignmentService _service;
-    private readonly IExportService _export;
     private readonly Random _rng = new();
     private AssignmentCandidate? _candidate;
     private readonly Dictionary<SeatPosition, string> _assignment = new(); // 표시·수동교체용 현재 배치
@@ -32,26 +31,21 @@ public partial class AssignmentViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
     private bool _canConfirm;
 
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
-    private bool _canExport;
-
     public ObservableCollection<SeatSectionViewModel> SectionsView { get; } = new();
 
     public bool PairOptionsEnabled => _state.Settings.Cols >= 2;
     public bool HasRelaxation => !string.IsNullOrEmpty(RelaxationBanner);
 
-    public AssignmentViewModel(AppState state, SeatAssignmentService service, IExportService export)
+    public AssignmentViewModel(AppState state, SeatAssignmentService service)
     {
         _state = state;
         _service = service;
-        _export = export;
         LoadFromSettings();
         RenderPreview();
     }
 
     // 디자인타임용
-    public AssignmentViewModel() : this(new AppState(), new SeatAssignmentService(), new UiServices()) { }
+    public AssignmentViewModel() : this(new AppState(), new SeatAssignmentService()) { }
 
     private void LoadFromSettings()
     {
@@ -109,10 +103,10 @@ public partial class AssignmentViewModel : ViewModelBase
         {
             Status = result.Error ?? "배정 실패";
             CanConfirm = false;
-            CanExport = false;
             _candidate = null;
             _assignment.Clear();
             _pendingSwap = null;
+            _state.LastChart = null;
             RelaxationBanner = "";
             RenderPreview();
             return;
@@ -130,15 +124,6 @@ public partial class AssignmentViewModel : ViewModelBase
                  " · 좌석 둘을 클릭하면 수동 교체";
         RelaxationBanner = _candidate.Relaxation.Summary;
         CanConfirm = true;
-        CanExport = true;
-    }
-
-    private bool CanExportExec() => CanExport;
-
-    [RelayCommand(CanExecute = nameof(CanExportExec))]
-    private async System.Threading.Tasks.Task ExportAsync()
-    {
-        await _export.ExportSeatChartAsync("자리 배치표", SectionsView.ToList());
     }
 
     /// <summary>수동 교체: 좌석 둘을 클릭하면 서로 맞바꾼다.</summary>
@@ -222,6 +207,32 @@ public partial class AssignmentViewModel : ViewModelBase
         foreach (var sec in SeatGridBuilder.Build(
                      _candidate!.Config, Lookup, EmptySeats(), SwapSeatCommand, GenderSeats(), _pendingSwap))
             SectionsView.Add(sec);
+
+        _state.LastChart = BuildSnapshot();
+    }
+
+    private ChartSnapshot BuildSnapshot()
+    {
+        var byKey = _state.Roster.ToDictionary(s => s.Key, s => s);
+        var snap = new ChartSnapshot
+        {
+            Config = _candidate!.Config.Clone(),
+            Empties = EmptySeats(),
+            GenderSeats = GenderSeats(),
+        };
+        foreach (var (pos, key) in _assignment)
+        {
+            byKey.TryGetValue(key, out var s);
+            snap.Seats.Add(new ChartSeat
+            {
+                Section = pos.Section, Row = pos.Row, Col = pos.Col,
+                Name = s?.Name ?? key,
+                SubText = s is null ? ""
+                    : (string.IsNullOrWhiteSpace(s.StudentNumber) ? s.Gender.ToKorean() : s.StudentNumber),
+                Gender = s?.Gender ?? Gender.Unspecified,
+            });
+        }
+        return snap;
     }
 
     /// <summary>탭 진입 시 호출 — 좌석 설정이 바뀌었을 수 있어 다시 반영.</summary>
@@ -232,7 +243,7 @@ public partial class AssignmentViewModel : ViewModelBase
         _assignment.Clear();
         _pendingSwap = null;
         CanConfirm = false;
-        CanExport = false;
+        _state.LastChart = null;
         RelaxationBanner = "";
         OnPropertyChanged(nameof(PairOptionsEnabled));
         RenderPreview();

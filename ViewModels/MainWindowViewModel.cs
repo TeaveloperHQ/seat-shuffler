@@ -16,12 +16,14 @@ public partial class MainWindowViewModel : ViewModelBase
     public ConstraintsViewModel Constraints { get; }
     public AssignmentViewModel Assignment { get; }
     public HistoryViewModel History { get; }
+    public DecorateViewModel Decorate { get; }
     public InfoViewModel Info { get; }
 
-    // 탭 순서: 명단(0) · 좌석 설정(1) · 제약(2) · 배정(3) · 기록(4) · 정보(5)
+    // 탭 순서: 명단(0) · 좌석 설정(1) · 제약(2) · 배정(3) · 기록(4) · 꾸미기(5) · 정보(6)
     private const int SeatSetupTabIndex = 1;
     private const int ConstraintsTabIndex = 2;
     private const int AssignmentTabIndex = 3;
+    private const int DecorateTabIndex = 5;
 
     [ObservableProperty] private int _selectedTabIndex;
 
@@ -37,6 +39,8 @@ public partial class MainWindowViewModel : ViewModelBase
             Constraints.RefreshGridBounds();   // 좌석 설정 그리드를 입력 한계로 상속
         else if (value == AssignmentTabIndex)
             Assignment.Refresh();
+        else if (value == DecorateTabIndex)
+            Decorate.Refresh();
     }
 
     public MainWindowViewModel(AppState state)
@@ -46,8 +50,9 @@ public partial class MainWindowViewModel : ViewModelBase
         Roster = new RosterViewModel(state, Ui, Ui);
         SeatSetup = new SeatSetupViewModel(state);
         Constraints = new ConstraintsViewModel(state);
-        Assignment = new AssignmentViewModel(state, new SeatAssignmentService(), Ui);
+        Assignment = new AssignmentViewModel(state, new SeatAssignmentService());
         History = new HistoryViewModel(state);
+        Decorate = new DecorateViewModel(state, Ui);
         Info = new InfoViewModel(state, Ui);
     }
 
