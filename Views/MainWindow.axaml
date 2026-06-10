@@ -6,7 +6,7 @@
         mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="640"
         x:Class="SeatShuffler.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/app.ico"
         Width="1000" Height="640" MinWidth="760" MinHeight="500"
         FontFamily="굴림, Gulim, Malgun Gothic, Noto Sans CJK KR, Nanum Gothic, sans-serif"
         Title="자리바꾸기">

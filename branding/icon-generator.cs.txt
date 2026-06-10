@@ -1,0 +1,37 @@
+using System; using System.IO;
+using Avalonia; using Avalonia.Headless; using Avalonia.Controls; using Avalonia.Controls.Shapes;
+using APath = Avalonia.Controls.Shapes.Path;
+using Avalonia.Media; using Avalonia.Media.Imaging; using Avalonia.Layout;
+AppBuilder.Configure<Application>().UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions{UseHeadlessDrawing=false}).SetupWithoutStarting();
+
+IBrush B(string h)=>new SolidColorBrush(Color.Parse(h));
+double S=1024;
+var canvas=new Canvas{ Width=S, Height=S };
+
+// 타일 배경(파랑 그라데이션)
+canvas.Children.Add(new Border{ Width=S, Height=S, CornerRadius=new CornerRadius(220),
+  Background=new LinearGradientBrush{ StartPoint=new RelativePoint(0,0,RelativeUnit.Relative), EndPoint=new RelativePoint(1,1,RelativeUnit.Relative),
+    GradientStops={ new GradientStop(Color.Parse("#5B8DEF"),0), new GradientStop(Color.Parse("#2F5FC9"),1) } } });
+
+void Seat(double x,double y,string fill){
+  var b=new Border{ Width=260, Height=200, CornerRadius=new CornerRadius(30), Background=B(fill),
+     BorderBrush=B("#FFFFFF"), BorderThickness=new Thickness(6) };
+  Canvas.SetLeft(b,x); Canvas.SetTop(b,y); canvas.Children.Add(b);
+}
+Seat(170,200,"#E3EEFF"); Seat(594,200,"#FCDDEA");
+Seat(170,560,"#FCDDEA"); Seat(594,560,"#E3EEFF");
+
+// 가운데 흰 원반
+var disc=new Ellipse{ Width=210, Height=210, Fill=B("#FFFFFF") };
+Canvas.SetLeft(disc,407); Canvas.SetTop(disc,375); canvas.Children.Add(disc);
+
+// 교환(swap) 화살표 ⇄ (네이비)
+var nav=B("#21468B");
+canvas.Children.Add(new APath{ Fill=nav, Data=Geometry.Parse("M452,442 L556,442 L556,430 L590,454 L556,478 L556,466 L452,466 Z") });
+canvas.Children.Add(new APath{ Fill=nav, Data=Geometry.Parse("M572,506 L468,506 L468,494 L434,518 L468,542 L468,530 L572,530 Z") });
+
+canvas.Measure(new Size(S,S)); canvas.Arrange(new Rect(0,0,S,S));
+using var rtb=new RenderTargetBitmap(new PixelSize((int)S,(int)S), new Vector(96,96));
+rtb.Render(canvas);
+using(var fs=File.Create("/tmp/icongen/icon.png")) rtb.Save(fs);
+Console.WriteLine("done");
