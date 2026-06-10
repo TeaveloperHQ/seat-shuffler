@@ -39,6 +39,11 @@ public partial class DecorateViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(BoardAtBottom))]
     private bool _flipForTeacher;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BoardAtTop))]
+    [NotifyPropertyChangedFor(nameof(BoardAtBottom))]
+    private bool _showBoard = true;
+
     [ObservableProperty] private bool _transparentCells;
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private IBrush _previewBackground = Brushes.White;
@@ -53,9 +58,9 @@ public partial class DecorateViewModel : ViewModelBase
 
     public ObservableCollection<SeatSectionViewModel> PreviewSections { get; } = new();
 
-    // 교탁 기준이면 칠판(앞)을 아래쪽에(출력 PNG와 동일).
-    public bool BoardAtTop => !FlipForTeacher;
-    public bool BoardAtBottom => FlipForTeacher;
+    // 칠판 표시 + 교탁 기준이면 아래쪽에(출력 PNG와 동일).
+    public bool BoardAtTop => ShowBoard && !FlipForTeacher;
+    public bool BoardAtBottom => ShowBoard && FlipForTeacher;
 
     public DecorateViewModel(AppState state, UiServices ui)
     {
@@ -74,6 +79,7 @@ public partial class DecorateViewModel : ViewModelBase
         _loading = true;
         SelectedSkin = ChartSkin.ById(_state.Settings.SkinId);
         FlipForTeacher = _state.Settings.FlipForTeacher;
+        ShowBoard = _state.Settings.ShowBoard;
         TransparentCells = _state.Settings.TransparentCells;
         ReloadImages();
         _loading = false;
@@ -134,6 +140,7 @@ public partial class DecorateViewModel : ViewModelBase
         if (_loading) return;
         _state.Settings.SkinId = SelectedSkin?.Id ?? "basic";
         _state.Settings.FlipForTeacher = FlipForTeacher;
+        _state.Settings.ShowBoard = ShowBoard;
         _state.Settings.TransparentCells = TransparentCells;
         _state.SaveConstraints();
     }
@@ -172,6 +179,7 @@ public partial class DecorateViewModel : ViewModelBase
 
     partial void OnSelectedSkinChanged(ChartSkin? value) { SaveSettings(); RenderPreview(); }
     partial void OnFlipForTeacherChanged(bool value) { SaveSettings(); RenderPreview(); }
+    partial void OnShowBoardChanged(bool value) { SaveSettings(); }
     partial void OnTransparentCellsChanged(bool value) { SaveSettings(); ReloadImages(); RenderPreview(); }
     partial void OnSelectedSourceChanged(ChartSource? value) { if (!_loading) RenderPreview(); }
 
@@ -206,7 +214,7 @@ public partial class DecorateViewModel : ViewModelBase
         if (snap is null) return;
         await _ui.ExportSeatChartAsync(
             "자리 배치표", snap, SelectedSkin ?? ChartSkin.Presets[0], FlipForTeacher,
-            _backgroundBitmap, _maleCellBitmap, _femaleCellBitmap, TransparentCells);
+            _backgroundBitmap, _maleCellBitmap, _femaleCellBitmap, TransparentCells, ShowBoard);
     }
 
     /// <summary>탭 진입 시 호출 — 소스 목록(최신 기록 포함)·미리보기 갱신.</summary>

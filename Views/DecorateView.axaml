@@ -44,6 +44,8 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
+                <CheckBox Content="칠판 표시" IsChecked="{Binding ShowBoard}"
+                          VerticalAlignment="Center" Margin="0,0,16,0"/>
                 <CheckBox Content="교탁 기준(좌석 거울반전)" IsChecked="{Binding FlipForTeacher}"
                           VerticalAlignment="Center" Margin="0,0,16,0"/>
                 <CheckBox Content="셀 투명 배경" IsChecked="{Binding TransparentCells}"

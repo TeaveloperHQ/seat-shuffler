@@ -34,7 +34,7 @@ public interface IExportService
 {
     /// <summary>좌석표를 스킨·교탁반전·배경/셀 이미지 적용해 PNG로 저장하고 기본 뷰어로 연다.</summary>
     Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
-        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells);
+        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells, bool showBoard);
 
     /// <summary>커스텀 배경 이미지 파일을 선택해 로컬 경로를 돌려준다.</summary>
     Task<string?> PickImageAsync();
@@ -69,14 +69,14 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
     }
 
     public async Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
-        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells)
+        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells, bool showBoard)
     {
         var sp = Owner?.StorageProvider;
         if (sp is null) return;
 
         // 스킨·교탁반전·배경·셀 이미지 적용한 좌석표를 별도 비주얼로 구성해 렌더.
         var sections = ChartBuilder.Build(snapshot, skin, flip, maleCell, femaleCell, transparentCells);
-        var visual = BuildChart(title, sections, skin, flip, background);
+        var visual = BuildChart(title, sections, skin, flip, background, showBoard);
         visual.Measure(Size.Infinity);
         visual.Arrange(new Rect(visual.DesiredSize));
         var size = visual.DesiredSize;
@@ -107,7 +107,7 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
     }
 
     public static Control BuildChart(string title, IReadOnlyList<SeatSectionViewModel> sections,
-        ChartSkin skin, bool flip, Bitmap? background = null)
+        ChartSkin skin, bool flip, Bitmap? background = null, bool showBoard = true)
     {
         var root = new StackPanel
         {
@@ -138,7 +138,7 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
                 HorizontalAlignment = HorizontalAlignment.Center, FontSize = 12,
             },
         };
-        if (!flip) root.Children.Add(Board());   // 정방향: 칠판 위, 교탁반전: 칠판 아래
+        if (showBoard && !flip) root.Children.Add(Board());   // 정방향: 칠판 위, 교탁반전: 칠판 아래
 
         var secPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
         foreach (var sec in sections)
@@ -184,7 +184,7 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
             secPanel.Children.Add(col);
         }
         root.Children.Add(secPanel);
-        if (flip) root.Children.Add(Board()); // 교탁반전: 칠판을 아래쪽에
+        if (showBoard && flip) root.Children.Add(Board()); // 교탁반전: 칠판을 아래쪽에
 
         if (background is null) return root;
 
