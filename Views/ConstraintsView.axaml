@@ -105,7 +105,11 @@
                 <ItemsControl x:Name="PriorityList" ItemsSource="{Binding Cards}" DragDrop.AllowDrop="True">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:ConstraintCardViewModel">
-                            <Border Background="#F4F5F7" CornerRadius="8" Padding="14" Margin="0,4">
+                          <StackPanel>
+                            <!-- 위쪽 삽입 표시선 -->
+                            <Border Height="3" Background="#2D7DF6" CornerRadius="2" Margin="2,1"
+                                    IsVisible="{Binding DropBefore}"/>
+                            <Border Tag="card" Background="#F4F5F7" CornerRadius="8" Padding="14" Margin="0,4">
                                 <StackPanel Spacing="8">
                                     <!-- 헤더: 제목 + 드래그 손잡이 -->
                                     <Grid ColumnDefinitions="*,Auto">
@@ -244,6 +248,10 @@
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
+                            <!-- 아래쪽 삽입 표시선 -->
+                            <Border Height="3" Background="#2D7DF6" CornerRadius="2" Margin="2,1"
+                                    IsVisible="{Binding DropAfter}"/>
+                          </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

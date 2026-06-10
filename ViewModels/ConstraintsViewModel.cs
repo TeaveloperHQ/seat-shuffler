@@ -36,7 +36,7 @@ public sealed class SeatPinRow
 }
 
 /// <summary>제약 카드 1개(설정 + 드래그 우선순위). Owner로 부모 VM 데이터에 바인딩.</summary>
-public sealed class ConstraintCardViewModel
+public partial class ConstraintCardViewModel : ObservableObject
 {
     public required ConstraintsViewModel Owner { get; init; }
     public ConstraintKind Kind { get; init; }
@@ -48,6 +48,10 @@ public sealed class ConstraintCardViewModel
     public bool IsGenderSeat => Kind == ConstraintKind.GenderSeat;
     public bool IsFixed => Kind == ConstraintKind.FixedSeat;
     public bool IsAvoid => Kind == ConstraintKind.AvoidSeat;
+
+    // 드래그 중 삽입 위치 표시(이 카드 위/아래에 선).
+    [ObservableProperty] private bool _dropBefore;
+    [ObservableProperty] private bool _dropAfter;
 }
 
 public partial class ConstraintsViewModel : ViewModelBase
@@ -411,8 +415,8 @@ public partial class ConstraintsViewModel : ViewModelBase
             Cards.Add(new ConstraintCardViewModel { Owner = this, Kind = k });
     }
 
-    /// <summary>카드 드래그 재정렬: moved를 target 위치 앞에 끼워 넣는다.</summary>
-    public void ReorderPriority(ConstraintKind moved, ConstraintKind target)
+    /// <summary>카드 드래그 재정렬: moved를 target 앞(after=false)/뒤(after=true)에 끼워 넣는다.</summary>
+    public void ReorderPriority(ConstraintKind moved, ConstraintKind target, bool after = false)
     {
         if (moved == target) return;
         if (!ConstraintKindInfo.ConstraintKinds.Contains(moved) ||
@@ -421,12 +425,18 @@ public partial class ConstraintsViewModel : ViewModelBase
         var order = C.ConstraintPriority();
         order.Remove(moved);
         int idx = order.IndexOf(target);
-        if (idx < 0) idx = order.Count;
-        order.Insert(idx, moved);
+        if (idx < 0) idx = order.Count - 1;
+        order.Insert(after ? idx + 1 : idx, moved);
 
         C.Priority = order;
         _state.SaveConstraints();
         RebuildCards();
+    }
+
+    /// <summary>드래그 중 모든 카드의 드롭 표시 해제.</summary>
+    public void ClearDropIndicators()
+    {
+        foreach (var c in Cards) { c.DropBefore = false; c.DropAfter = false; }
     }
 
     private void UpdateStatus() =>
