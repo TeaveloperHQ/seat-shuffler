@@ -205,11 +205,11 @@
                                             <ComboBox ItemsSource="{Binding Owner.Students}" SelectedItem="{Binding Owner.FixedStudent}"
                                                       ItemTemplate="{StaticResource StudentItem}" Width="140" PlaceholderText="학생" Margin="0,0,8,6"/>
                                             <TextBlock Text="분단" VerticalAlignment="Center" Margin="0,0,4,6"/>
-                                            <NumericUpDown Value="{Binding Owner.FixedSection}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <NumericUpDown Value="{Binding Owner.FixedSection}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="116" Margin="0,0,8,6"/>
                                             <TextBlock Text="행" VerticalAlignment="Center" Margin="0,0,4,6"/>
-                                            <NumericUpDown Value="{Binding Owner.FixedRow}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <NumericUpDown Value="{Binding Owner.FixedRow}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="116" Margin="0,0,8,6"/>
                                             <TextBlock Text="열" VerticalAlignment="Center" Margin="0,0,4,6"/>
-                                            <NumericUpDown Value="{Binding Owner.FixedCol}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <NumericUpDown Value="{Binding Owner.FixedCol}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="116" Margin="0,0,8,6"/>
                                             <Button Content="추가" Command="{Binding Owner.AddFixedCommand}" Margin="0,0,6,6"/>
                                             <Button Content="선택 삭제" Command="{Binding Owner.RemoveFixedCommand}" Margin="0,0,6,6"/>
                                         </WrapPanel>
@@ -227,11 +227,11 @@
                                             <ComboBox ItemsSource="{Binding Owner.Students}" SelectedItem="{Binding Owner.AvoidStudent}"
                                                       ItemTemplate="{StaticResource StudentItem}" Width="140" PlaceholderText="학생" Margin="0,0,8,6"/>
                                             <TextBlock Text="분단" VerticalAlignment="Center" Margin="0,0,4,6"/>
-                                            <NumericUpDown Value="{Binding Owner.AvoidSection}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <NumericUpDown Value="{Binding Owner.AvoidSection}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="116" Margin="0,0,8,6"/>
                                             <TextBlock Text="행" VerticalAlignment="Center" Margin="0,0,4,6"/>
-                                            <NumericUpDown Value="{Binding Owner.AvoidRow}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <NumericUpDown Value="{Binding Owner.AvoidRow}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="116" Margin="0,0,8,6"/>
                                             <TextBlock Text="열" VerticalAlignment="Center" Margin="0,0,4,6"/>
-                                            <NumericUpDown Value="{Binding Owner.AvoidCol}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="86" Margin="0,0,8,6"/>
+                                            <NumericUpDown Value="{Binding Owner.AvoidCol}" Minimum="1" Maximum="12" Increment="1" FormatString="0" Width="116" Margin="0,0,8,6"/>
                                             <Button Content="추가" Command="{Binding Owner.AddAvoidCommand}" Margin="0,0,6,6"/>
                                             <Button Content="선택 삭제" Command="{Binding Owner.RemoveAvoidCommand}" Margin="0,0,6,6"/>
                                         </WrapPanel>
