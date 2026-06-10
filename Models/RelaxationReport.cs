@@ -24,13 +24,13 @@ public sealed class RelaxationReport
         {
             if (!AnyRelaxed) return "";
             var parts = new List<string>();
-            if (RelaxedGenderPairing) parts.Add("성별 짝");
+            if (RelaxedGenderPairing) parts.Add("동성/이성 짝");
             if (RelaxedSameSeat) parts.Add("같은 자리 회피");
             if (RelaxedSamePair) parts.Add("같은 짝 회피");
             if (RelaxedFrontRow) parts.Add("앞자리 지정");
             if (RelaxedGenderSeat) parts.Add("남녀 자리 지정");
-            if (RelaxedForbiddenPair) parts.Add("짝 금지");
-            if (RelaxedRequiredPair) parts.Add("짝 필수");
+            if (RelaxedForbiddenPair) parts.Add("가급적 멀리");
+            if (RelaxedRequiredPair) parts.Add("가급적 가깝게");
             return $"제약 완화: {string.Join(", ", parts)} 조건을 모두 만족할 수 없어 완화했습니다.";
         }
     }
