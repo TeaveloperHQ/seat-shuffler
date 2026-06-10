@@ -33,7 +33,12 @@ public partial class DecorateViewModel : ViewModelBase
 
     [ObservableProperty] private ChartSource? _selectedSource;
     [ObservableProperty] private ChartSkin? _selectedSkin;
-    [ObservableProperty] private bool _flipForTeacher;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BoardAtTop))]
+    [NotifyPropertyChangedFor(nameof(BoardAtBottom))]
+    private bool _flipForTeacher;
+
     [ObservableProperty] private bool _transparentCells;
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private IBrush _previewBackground = Brushes.White;
@@ -47,6 +52,10 @@ public partial class DecorateViewModel : ViewModelBase
     private bool _canExport;
 
     public ObservableCollection<SeatSectionViewModel> PreviewSections { get; } = new();
+
+    // 교탁 기준이면 칠판(앞)을 아래쪽에(출력 PNG와 동일).
+    public bool BoardAtTop => !FlipForTeacher;
+    public bool BoardAtBottom => FlipForTeacher;
 
     public DecorateViewModel(AppState state, UiServices ui)
     {

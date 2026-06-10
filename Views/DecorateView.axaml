@@ -73,7 +73,7 @@
             <ScrollViewer HorizontalScrollBarVisibility="Auto" Padding="16">
                 <StackPanel>
                     <Border Background="#2E3B2E" CornerRadius="4" Padding="6" Margin="0,0,0,10"
-                            HorizontalAlignment="Center" Width="240">
+                            HorizontalAlignment="Center" Width="240" IsVisible="{Binding BoardAtTop}">
                         <TextBlock Text="칠판 (앞)" Foreground="#CFE8CF" HorizontalAlignment="Center" FontSize="12"/>
                     </Border>
                     <ItemsControl ItemsSource="{Binding PreviewSections}">
@@ -119,6 +119,10 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <Border Background="#2E3B2E" CornerRadius="4" Padding="6" Margin="0,10,0,0"
+                            HorizontalAlignment="Center" Width="240" IsVisible="{Binding BoardAtBottom}">
+                        <TextBlock Text="칠판 (앞)" Foreground="#CFE8CF" HorizontalAlignment="Center" FontSize="12"/>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
             </Grid>
