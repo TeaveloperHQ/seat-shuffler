@@ -17,20 +17,20 @@
             <WrapPanel Orientation="Horizontal">
 
                 <!-- 불러오기 -->
-                <TextBlock Text="불러오기" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="불러오기" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,4,8,4"/>
                 <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}"
-                          Width="240" VerticalAlignment="Center">
+                          Width="240" VerticalAlignment="Center" Margin="0,4">
                     <ComboBox.ItemTemplate>
                         <DataTemplate DataType="vm:ChartSource"><TextBlock Text="{Binding Label}"/></DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
 
-                <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,0" VerticalAlignment="Center"/>
+                <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,4" VerticalAlignment="Center"/>
 
                 <!-- 스킨 (라벨 생략) — 작게, 폭 모자라면 가로 슬라이드 -->
                 <ListBox ItemsSource="{Binding Skins}" SelectedItem="{Binding SelectedSkin}"
                          Background="Transparent" BorderThickness="0" Padding="0" VerticalAlignment="Center"
-                         MaxWidth="300"
+                         MaxWidth="300" Margin="0,4"
                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
                          ScrollViewer.VerticalScrollBarVisibility="Disabled">
                     <ListBox.ItemsPanel>
@@ -56,10 +56,10 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,0" VerticalAlignment="Center"/>
+                <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,4" VerticalAlignment="Center"/>
 
                 <!-- 커스텀 이미지 -->
-                <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="0,4">
                     <Button Content="배경" Command="{Binding LoadBackgroundCommand}"/>
                     <Button Content="✕" Command="{Binding ClearBackgroundCommand}" IsEnabled="{Binding HasBackground}" Padding="7,4"/>
                     <Border Width="6"/>
@@ -73,14 +73,14 @@
                               ToolTip.Tip="특이한 모양/투명 PNG 셀일 때 카드 배경·테두리 없이 이미지 그대로. 불투명 이미지는 단색 배경 자동 제거."/>
                 </StackPanel>
 
-                <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,0" VerticalAlignment="Center"/>
+                <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,4" VerticalAlignment="Center"/>
 
                 <!-- 출력 -->
-                <CheckBox Content="칠판 표시" IsChecked="{Binding ShowBoard}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <CheckBox Content="교탁 기준" IsChecked="{Binding FlipForTeacher}" VerticalAlignment="Center" Margin="0,0,10,0"
+                <CheckBox Content="칠판 표시" IsChecked="{Binding ShowBoard}" VerticalAlignment="Center" Margin="0,4,10,4"/>
+                <CheckBox Content="교탁 기준" IsChecked="{Binding FlipForTeacher}" VerticalAlignment="Center" Margin="0,4,10,4"
                           ToolTip.Tip="좌석을 거울반전하고 칠판을 아래로(교탁에서 본 방향)"/>
                 <Button Content="출력(PNG)" Command="{Binding ExportCommand}"
-                        Padding="18,7" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        Padding="18,7" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,4"/>
 
             </WrapPanel>
         </Border>
@@ -92,7 +92,7 @@
             <Image Source="{Binding PreviewBackgroundImage}" Stretch="UniformToFill"
                    IsVisible="{Binding HasBackground}"/>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" Padding="16">
-                <StackPanel>
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Border Background="#2E3B2E" CornerRadius="4" Padding="6" Margin="0,0,0,10"
                             HorizontalAlignment="Center" Width="240" IsVisible="{Binding BoardAtTop}">
                         <TextBlock Text="칠판 (앞)" Foreground="#CFE8CF" HorizontalAlignment="Center" FontSize="12"/>

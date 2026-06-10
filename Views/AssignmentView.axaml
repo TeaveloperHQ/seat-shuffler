@@ -47,7 +47,8 @@
 
         <!-- 좌석 그리드 (결과, 읽기 전용) -->
         <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding SectionsView}">
+            <ItemsControl ItemsSource="{Binding SectionsView}"
+                          HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
