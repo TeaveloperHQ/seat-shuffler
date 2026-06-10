@@ -28,6 +28,8 @@
                 <Button Content="배정" Command="{Binding AssignCommand}"
                         Padding="20,8" FontWeight="SemiBold" Margin="0,0,6,0"/>
                 <Button Content="확정" Command="{Binding ConfirmCommand}"
+                        Padding="20,8" FontWeight="SemiBold" Margin="0,0,6,0"/>
+                <Button Content="출력(PNG)" Command="{Binding ExportCommand}"
                         Padding="20,8" FontWeight="SemiBold"/>
             </WrapPanel>
         </Border>

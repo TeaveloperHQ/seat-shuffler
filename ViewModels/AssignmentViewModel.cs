@@ -13,6 +13,7 @@ public partial class AssignmentViewModel : ViewModelBase
 {
     private readonly AppState _state;
     private readonly SeatAssignmentService _service;
+    private readonly IExportService _export;
     private readonly Random _rng = new();
     private AssignmentCandidate? _candidate;
     private readonly Dictionary<SeatPosition, string> _assignment = new(); // 표시·수동교체용 현재 배치
@@ -31,21 +32,26 @@ public partial class AssignmentViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
     private bool _canConfirm;
 
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
+    private bool _canExport;
+
     public ObservableCollection<SeatSectionViewModel> SectionsView { get; } = new();
 
     public bool PairOptionsEnabled => _state.Settings.Cols >= 2;
     public bool HasRelaxation => !string.IsNullOrEmpty(RelaxationBanner);
 
-    public AssignmentViewModel(AppState state, SeatAssignmentService service)
+    public AssignmentViewModel(AppState state, SeatAssignmentService service, IExportService export)
     {
         _state = state;
         _service = service;
+        _export = export;
         LoadFromSettings();
         RenderPreview();
     }
 
     // 디자인타임용
-    public AssignmentViewModel() : this(new AppState(), new SeatAssignmentService()) { }
+    public AssignmentViewModel() : this(new AppState(), new SeatAssignmentService(), new UiServices()) { }
 
     private void LoadFromSettings()
     {
@@ -103,6 +109,7 @@ public partial class AssignmentViewModel : ViewModelBase
         {
             Status = result.Error ?? "배정 실패";
             CanConfirm = false;
+            CanExport = false;
             _candidate = null;
             _assignment.Clear();
             _pendingSwap = null;
@@ -123,6 +130,15 @@ public partial class AssignmentViewModel : ViewModelBase
                  " · 좌석 둘을 클릭하면 수동 교체";
         RelaxationBanner = _candidate.Relaxation.Summary;
         CanConfirm = true;
+        CanExport = true;
+    }
+
+    private bool CanExportExec() => CanExport;
+
+    [RelayCommand(CanExecute = nameof(CanExportExec))]
+    private async System.Threading.Tasks.Task ExportAsync()
+    {
+        await _export.ExportSeatChartAsync("자리 배치표", SectionsView.ToList());
     }
 
     /// <summary>수동 교체: 좌석 둘을 클릭하면 서로 맞바꾼다.</summary>
@@ -216,6 +232,7 @@ public partial class AssignmentViewModel : ViewModelBase
         _assignment.Clear();
         _pendingSwap = null;
         CanConfirm = false;
+        CanExport = false;
         RelaxationBanner = "";
         OnPropertyChanged(nameof(PairOptionsEnabled));
         RenderPreview();

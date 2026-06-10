@@ -46,7 +46,7 @@ public partial class MainWindowViewModel : ViewModelBase
         Roster = new RosterViewModel(state, Ui, Ui);
         SeatSetup = new SeatSetupViewModel(state);
         Constraints = new ConstraintsViewModel(state);
-        Assignment = new AssignmentViewModel(state, new SeatAssignmentService());
+        Assignment = new AssignmentViewModel(state, new SeatAssignmentService(), Ui);
         History = new HistoryViewModel(state);
         Info = new InfoViewModel(state, Ui);
     }
