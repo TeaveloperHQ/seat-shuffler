@@ -8,6 +8,7 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Width="1000" Height="640" MinWidth="760" MinHeight="500"
+        FontFamily="굴림, Gulim, Malgun Gothic, Noto Sans CJK KR, Nanum Gothic, sans-serif"
         Title="자리바꾸기">
 
     <Design.DataContext>
