@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using SeatShuffler.Models;
 
 namespace SeatShuffler.ViewModels;
@@ -20,6 +21,10 @@ public sealed class SeatSlotViewModel
     public Thickness Margin { get; init; }
     public Thickness BorderThickness { get; init; } = new(1);
     public ICommand? ToggleCommand { get; init; }
+
+    /// <summary>커스텀 셀 이미지(있으면 카드 배경 대신 사용). 꾸미기 출력 전용.</summary>
+    public Bitmap? CellImage { get; init; }
+    public bool HasCellImage => CellImage is not null;
 
     public static IBrush BrushFor(Gender g, bool empty) => empty
         ? new SolidColorBrush(Color.Parse("#F0F0F0"))

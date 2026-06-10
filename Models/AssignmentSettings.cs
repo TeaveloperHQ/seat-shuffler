@@ -45,4 +45,8 @@ public sealed class AssignmentSettings
 
     /// <summary>커스텀 배경 이미지 경로(없으면 스킨 배경색 사용).</summary>
     public string? BackgroundImagePath { get; set; }
+
+    /// <summary>남자리/여자리 셀 이미지 경로(없으면 스킨 카드색 사용).</summary>
+    public string? MaleCellImagePath { get; set; }
+    public string? FemaleCellImagePath { get; set; }
 }

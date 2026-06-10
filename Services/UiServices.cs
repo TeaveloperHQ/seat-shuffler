@@ -32,8 +32,9 @@ public interface IDialogService
 
 public interface IExportService
 {
-    /// <summary>좌석표를 스킨·교탁반전·배경이미지 적용해 PNG로 저장하고 기본 뷰어로 연다.</summary>
-    Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip, Bitmap? background);
+    /// <summary>좌석표를 스킨·교탁반전·배경/셀 이미지 적용해 PNG로 저장하고 기본 뷰어로 연다.</summary>
+    Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
+        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell);
 
     /// <summary>커스텀 배경 이미지 파일을 선택해 로컬 경로를 돌려준다.</summary>
     Task<string?> PickImageAsync();
@@ -67,13 +68,14 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
-    public async Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip, Bitmap? background)
+    public async Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
+        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell)
     {
         var sp = Owner?.StorageProvider;
         if (sp is null) return;
 
-        // 스킨·교탁반전·배경 적용한 좌석표를 별도 비주얼로 구성해 이미지로 렌더.
-        var sections = ChartBuilder.Build(snapshot, skin, flip);
+        // 스킨·교탁반전·배경·셀 이미지 적용한 좌석표를 별도 비주얼로 구성해 렌더.
+        var sections = ChartBuilder.Build(snapshot, skin, flip, maleCell, femaleCell);
         var visual = BuildChart(title, sections, skin, flip, background);
         visual.Measure(Size.Infinity);
         visual.Arrange(new Rect(visual.DesiredSize));
@@ -152,20 +154,29 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
                 var rp = new StackPanel { Orientation = Orientation.Horizontal };
                 foreach (var seat in row.Seats)
                 {
+                    var text = new StackPanel
+                    {
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Children =
+                        {
+                            new TextBlock { Text = seat.Name, FontSize = 15, FontWeight = FontWeight.SemiBold, Foreground = seat.Foreground, HorizontalAlignment = HorizontalAlignment.Center },
+                            new TextBlock { Text = seat.SubText, FontSize = 10, Foreground = seat.Foreground, HorizontalAlignment = HorizontalAlignment.Center },
+                        },
+                    };
+                    Control content = text;
+                    if (seat.CellImage is { } cell)
+                    {
+                        var cg = new Grid();
+                        cg.Children.Add(new Image { Source = cell, Stretch = Avalonia.Media.Stretch.UniformToFill });
+                        cg.Children.Add(text);
+                        content = cg;
+                    }
                     rp.Children.Add(new Border
                     {
                         Background = seat.Background, BorderBrush = seat.Border,
                         BorderThickness = seat.BorderThickness, CornerRadius = new CornerRadius(8),
-                        Margin = seat.Margin, Width = 92, Height = 58,
-                        Child = new StackPanel
-                        {
-                            VerticalAlignment = VerticalAlignment.Center,
-                            Children =
-                            {
-                                new TextBlock { Text = seat.Name, FontSize = 15, FontWeight = FontWeight.SemiBold, Foreground = seat.Foreground, HorizontalAlignment = HorizontalAlignment.Center },
-                                new TextBlock { Text = seat.SubText, FontSize = 10, Foreground = seat.Foreground, HorizontalAlignment = HorizontalAlignment.Center },
-                            },
-                        },
+                        Margin = seat.Margin, Width = 92, Height = 58, ClipToBounds = true,
+                        Child = content,
                     });
                 }
                 col.Children.Add(rp);

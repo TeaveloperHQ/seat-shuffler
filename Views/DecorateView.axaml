@@ -46,10 +46,16 @@
                 </ListBox>
                 <CheckBox Content="교탁 기준(좌석 거울반전)" IsChecked="{Binding FlipForTeacher}"
                           VerticalAlignment="Center" Margin="0,0,16,0"/>
-                <Button Content="배경 이미지" Command="{Binding LoadBackgroundCommand}"
-                        VerticalAlignment="Center" Margin="0,0,6,0"/>
-                <Button Content="배경 지우기" Command="{Binding ClearBackgroundCommand}"
-                        IsEnabled="{Binding HasBackground}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="0,0,16,0">
+                    <Button Content="배경" Command="{Binding LoadBackgroundCommand}"/>
+                    <Button Content="✕" Command="{Binding ClearBackgroundCommand}" IsEnabled="{Binding HasBackground}" Padding="7,4"/>
+                    <Border Width="8"/>
+                    <Button Content="남자리 셀" Command="{Binding LoadMaleCellCommand}"/>
+                    <Button Content="✕" Command="{Binding ClearMaleCellCommand}" IsEnabled="{Binding HasMaleCell}" Padding="7,4"/>
+                    <Border Width="8"/>
+                    <Button Content="여자리 셀" Command="{Binding LoadFemaleCellCommand}"/>
+                    <Button Content="✕" Command="{Binding ClearFemaleCellCommand}" IsEnabled="{Binding HasFemaleCell}" Padding="7,4"/>
+                </StackPanel>
                 <Button Content="출력(PNG)" Command="{Binding ExportCommand}"
                         Padding="20,8" FontWeight="SemiBold" VerticalAlignment="Center"/>
             </WrapPanel>
@@ -87,13 +93,18 @@
                                                         <DataTemplate DataType="vm:SeatSlotViewModel">
                                                             <Border Background="{Binding Background}"
                                                                     BorderBrush="{Binding Border}" BorderThickness="{Binding BorderThickness}"
-                                                                    CornerRadius="8" Margin="{Binding Margin}" Width="92" Height="58">
-                                                                <StackPanel VerticalAlignment="Center">
-                                                                    <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
-                                                                               Foreground="{Binding Foreground}" HorizontalAlignment="Center"/>
-                                                                    <TextBlock Text="{Binding SubText}" FontSize="10"
-                                                                               Foreground="{Binding Foreground}" HorizontalAlignment="Center"/>
-                                                                </StackPanel>
+                                                                    CornerRadius="8" Margin="{Binding Margin}" Width="92" Height="58"
+                                                                    ClipToBounds="True">
+                                                                <Grid>
+                                                                    <Image Source="{Binding CellImage}" Stretch="UniformToFill"
+                                                                           IsVisible="{Binding HasCellImage}"/>
+                                                                    <StackPanel VerticalAlignment="Center">
+                                                                        <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
+                                                                                   Foreground="{Binding Foreground}" HorizontalAlignment="Center"/>
+                                                                        <TextBlock Text="{Binding SubText}" FontSize="10"
+                                                                                   Foreground="{Binding Foreground}" HorizontalAlignment="Center"/>
+                                                                    </StackPanel>
+                                                                </Grid>
                                                             </Border>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>

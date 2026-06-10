@@ -1,14 +1,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
+using Avalonia.Media.Imaging;
 using SeatShuffler.Models;
 
 namespace SeatShuffler.ViewModels;
 
-/// <summary>출력/미리보기용 좌석표 빌더: 스냅샷 + 스킨 + 교탁반전 → 표시 VM.</summary>
+/// <summary>출력/미리보기용 좌석표 빌더: 스냅샷 + 스킨 + 교탁반전 + 셀 이미지 → 표시 VM.</summary>
 public static class ChartBuilder
 {
-    public static List<SeatSectionViewModel> Build(ChartSnapshot snap, ChartSkin skin, bool flip)
+    public static List<SeatSectionViewModel> Build(ChartSnapshot snap, ChartSkin skin, bool flip,
+        Bitmap? maleCell = null, Bitmap? femaleCell = null)
     {
         var cfg = snap.Config;
         var byPos = new Dictionary<(int, int, int), ChartSeat>();
@@ -45,12 +47,18 @@ public static class ChartBuilder
                     Gender? zone = snap.GenderSeats.TryGetValue(pos, out var zg) ? zg : null;
                     if (byPos.TryGetValue((s, r, c), out var seat))
                     {
+                        var cell = seat.Gender switch
+                        {
+                            Gender.Male => maleCell,
+                            Gender.Female => femaleCell,
+                            _ => null,
+                        };
                         row.Seats.Add(new SeatSlotViewModel
                         {
                             Position = pos, Name = seat.Name, SubText = seat.SubText,
                             Background = skin.SeatBrush(seat.Gender, false),
                             Border = skin.SeatBorder, Foreground = skin.SeatForeground,
-                            Margin = margin,
+                            Margin = margin, CellImage = cell,
                         });
                     }
                     else
