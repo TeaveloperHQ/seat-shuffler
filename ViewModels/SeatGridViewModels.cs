@@ -18,6 +18,7 @@ public sealed class SeatSlotViewModel
     public IBrush Border { get; init; } = new SolidColorBrush(Color.Parse("#E0E0E0"));
     public IBrush Foreground { get; init; } = Brushes.Black;
     public Thickness Margin { get; init; }
+    public Thickness BorderThickness { get; init; } = new(1);
     public ICommand? ToggleCommand { get; init; }
 
     public static IBrush BrushFor(Gender g, bool empty) => empty
@@ -49,12 +50,15 @@ public static class SeatGridBuilder
     private static readonly IBrush BlockedFg = new SolidColorBrush(Color.Parse("#CCCCCC"));
     private static readonly IBrush DefaultBorder = new SolidColorBrush(Color.Parse("#E0E0E0"));
 
+    private static readonly IBrush SelectedBorder = new SolidColorBrush(Color.Parse("#2D7DF6"));
+
     public static List<SeatSectionViewModel> Build(
         SeatGridConfig config,
         Func<SeatPosition, Student?> lookup,
         IReadOnlySet<SeatPosition>? emptySeats = null,
         ICommand? toggleCommand = null,
-        IReadOnlyDictionary<SeatPosition, Gender>? genderSeats = null)
+        IReadOnlyDictionary<SeatPosition, Gender>? genderSeats = null,
+        SeatPosition? selected = null)
     {
         var sections = new List<SeatSectionViewModel>();
         for (int s = 0; s < config.Sections; s++)
@@ -68,6 +72,8 @@ public static class SeatGridBuilder
                     var pos = new SeatPosition(s, r, c);
                     double left = (c > 0 && c % 2 == 0) ? 14 : 3;
                     var margin = new Thickness(left, 3, 3, 3);
+                    bool sel = selected.HasValue && selected.Value.Equals(pos);
+                    var selThickness = sel ? new Thickness(3) : new Thickness(1);
 
                     if (emptySeats is not null && emptySeats.Contains(pos))
                     {
@@ -75,7 +81,8 @@ public static class SeatGridBuilder
                         {
                             Position = pos, Name = "비움", SubText = "✕", IsBlocked = true,
                             Background = BlockedBg, Foreground = BlockedFg,
-                            Border = BlockedBg, Margin = margin, ToggleCommand = toggleCommand,
+                            Border = sel ? SelectedBorder : BlockedBg, BorderThickness = selThickness,
+                            Margin = margin, ToggleCommand = toggleCommand,
                         });
                         continue;
                     }
@@ -93,7 +100,9 @@ public static class SeatGridBuilder
                             SubText = string.IsNullOrWhiteSpace(student.StudentNumber)
                                 ? student.Gender.ToKorean() : student.StudentNumber,
                             Background = SeatSlotViewModel.BrushFor(student.Gender, false),
-                            Border = zone is null ? DefaultBorder : SeatSlotViewModel.BrushFor(zone.Value, false),
+                            Border = sel ? SelectedBorder
+                                : (zone is null ? DefaultBorder : SeatSlotViewModel.BrushFor(zone.Value, false)),
+                            BorderThickness = selThickness,
                             Foreground = Brushes.Black,
                             Margin = margin,
                             ToggleCommand = toggleCommand,
@@ -108,6 +117,8 @@ public static class SeatGridBuilder
                         Name = zone switch { Gender.Male => "남자리", Gender.Female => "여자리", _ => "빈자리" },
                         SubText = "",
                         Background = SeatSlotViewModel.BrushFor(zone ?? Gender.Unspecified, zone is null),
+                        Border = sel ? SelectedBorder : DefaultBorder,
+                        BorderThickness = selThickness,
                         Foreground = zone is null ? new SolidColorBrush(Color.Parse("#AAAAAA")) : new SolidColorBrush(Color.Parse("#555555")),
                         Margin = margin,
                         ToggleCommand = toggleCommand,

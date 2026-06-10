@@ -69,10 +69,14 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="vm:SeatSlotViewModel">
-                                                    <Border Background="{Binding Background}"
-                                                            BorderBrush="{Binding Border}" BorderThickness="1"
+                                                    <Button Command="{Binding ToggleCommand}"
+                                                            CommandParameter="{Binding Position}"
+                                                            Background="{Binding Background}"
+                                                            BorderBrush="{Binding Border}"
+                                                            BorderThickness="{Binding BorderThickness}"
                                                             CornerRadius="8" Margin="{Binding Margin}"
-                                                            Width="92" Height="58">
+                                                            Width="92" Height="58" Padding="0" Cursor="Hand"
+                                                            ToolTip.Tip="좌석 둘을 클릭하면 서로 바뀝니다">
                                                         <StackPanel VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Name}" FontSize="15"
                                                                        FontWeight="SemiBold"
@@ -82,7 +86,7 @@
                                                                        Foreground="{Binding Foreground}"
                                                                        HorizontalAlignment="Center"/>
                                                         </StackPanel>
-                                                    </Border>
+                                                    </Button>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>

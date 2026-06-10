@@ -15,6 +15,8 @@ public partial class AssignmentViewModel : ViewModelBase
     private readonly SeatAssignmentService _service;
     private readonly Random _rng = new();
     private AssignmentCandidate? _candidate;
+    private readonly Dictionary<SeatPosition, string> _assignment = new(); // 표시·수동교체용 현재 배치
+    private SeatPosition? _pendingSwap;
     private bool _loading;
 
     [ObservableProperty] private bool _pairSame = true;
@@ -102,19 +104,52 @@ public partial class AssignmentViewModel : ViewModelBase
             Status = result.Error ?? "배정 실패";
             CanConfirm = false;
             _candidate = null;
+            _assignment.Clear();
+            _pendingSwap = null;
             RelaxationBanner = "";
             RenderPreview();
             return;
         }
 
         _candidate = result.Candidate!;
-        RenderCandidate(_candidate);
+        _assignment.Clear();
+        foreach (var (pos, key) in _candidate.SeatToStudentKey) _assignment[pos] = key;
+        _pendingSwap = null;
+        RenderAssignment();
 
-        int placed = _candidate.SeatToStudentKey.Count;
+        int placed = _assignment.Count;
         Status = $"{placed}명 배정됨 · 분단{config.Sections}·행{config.Rows}·열{config.Cols}" +
-                 (config.HasPairs ? $" · {(config.PairMode == PairMode.OppositeGender ? "이성짝" : "동성짝")}" : " · 단독석");
+                 (config.HasPairs ? $" · {(config.PairMode == PairMode.OppositeGender ? "이성짝" : "동성짝")}" : " · 단독석") +
+                 " · 좌석 둘을 클릭하면 수동 교체";
         RelaxationBanner = _candidate.Relaxation.Summary;
         CanConfirm = true;
+    }
+
+    /// <summary>수동 교체: 좌석 둘을 클릭하면 서로 맞바꾼다.</summary>
+    [RelayCommand]
+    private void SwapSeat(SeatPosition pos)
+    {
+        if (_candidate is null) return;                 // 배정 후에만 동작
+        if (EmptySeats().Contains(pos)) return;         // 비움(배정 제외) 좌석은 교체 대상 아님
+
+        if (_pendingSwap is null)
+        {
+            _pendingSwap = pos;                         // 첫 좌석 선택
+        }
+        else if (_pendingSwap.Value.Equals(pos))
+        {
+            _pendingSwap = null;                        // 같은 좌석 다시 클릭 → 선택 해제
+        }
+        else
+        {
+            var a = _pendingSwap.Value;
+            _assignment.TryGetValue(a, out var sa);
+            _assignment.TryGetValue(pos, out var sb);
+            if (sb is null) _assignment.Remove(a); else _assignment[a] = sb;
+            if (sa is null) _assignment.Remove(pos); else _assignment[pos] = sa;
+            _pendingSwap = null;
+        }
+        RenderAssignment();
     }
 
     private bool CanConfirmExec() => CanConfirm;
@@ -131,7 +166,7 @@ public partial class AssignmentViewModel : ViewModelBase
             Label = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm"),
             Config = _candidate.Config.Clone(),
         };
-        foreach (var (pos, key) in _candidate.SeatToStudentKey)
+        foreach (var (pos, key) in _assignment)
         {
             byKey.TryGetValue(key, out var s);
             record.Placements.Add(new PlacementDto
@@ -161,15 +196,15 @@ public partial class AssignmentViewModel : ViewModelBase
         Status = $"좌석 {avail}석 · '배정'을 누르세요. (좌석 구조는 '좌석 설정' 탭에서 변경)";
     }
 
-    private void RenderCandidate(AssignmentCandidate candidate)
+    private void RenderAssignment()
     {
         var byKey = _state.Roster.ToDictionary(s => s.Key, s => s);
         Student? Lookup(SeatPosition pos) =>
-            candidate.SeatToStudentKey.TryGetValue(pos, out var key) && byKey.TryGetValue(key, out var s)
-                ? s : null;
+            _assignment.TryGetValue(pos, out var key) && byKey.TryGetValue(key, out var s) ? s : null;
 
         SectionsView.Clear();
-        foreach (var sec in SeatGridBuilder.Build(candidate.Config, Lookup, EmptySeats(), null, GenderSeats()))
+        foreach (var sec in SeatGridBuilder.Build(
+                     _candidate!.Config, Lookup, EmptySeats(), SwapSeatCommand, GenderSeats(), _pendingSwap))
             SectionsView.Add(sec);
     }
 
@@ -178,6 +213,8 @@ public partial class AssignmentViewModel : ViewModelBase
     {
         LoadFromSettings();
         _candidate = null;
+        _assignment.Clear();
+        _pendingSwap = null;
         CanConfirm = false;
         RelaxationBanner = "";
         OnPropertyChanged(nameof(PairOptionsEnabled));
