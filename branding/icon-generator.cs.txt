@@ -1,37 +1,38 @@
+// 자리바꾸기 앱 아이콘 생성기 (teaveloper 브랜드)
+// 재현 방법:
+//  1) 죽방 앰블럼 실루엣 추출(Image_Editor 공식 emblem에서):
+//     magick teaveloper-emblem.png -channel RGB -separate -evaluate-sequence Min \
+//       -statistic Median 5x5 -level 58%,82% alpha.png
+//     magick -size 256x256 xc:white alpha.png -alpha off -compose CopyOpacity -composite e.png
+//     magick e.png -trim +repage teaveloper-emblem-white.png
+//  2) 아래 프로그램을 Avalonia.Headless+Skia 콘솔로 실행 → v5.png(1024)
+//  3) magick v5.png -define icon:auto-resize=256,128,64,48,32,16 app.ico
 using System; using System.IO;
 using Avalonia; using Avalonia.Headless; using Avalonia.Controls; using Avalonia.Controls.Shapes;
+using Avalonia.Media; using Avalonia.Media.Imaging;
 using APath = Avalonia.Controls.Shapes.Path;
-using Avalonia.Media; using Avalonia.Media.Imaging; using Avalonia.Layout;
 AppBuilder.Configure<Application>().UseSkia().UseHeadless(new AvaloniaHeadlessPlatformOptions{UseHeadlessDrawing=false}).SetupWithoutStarting();
-
-IBrush B(string h)=>new SolidColorBrush(Color.Parse(h));
+IBrush W=Brushes.White; var indigo=new SolidColorBrush(Color.Parse("#6366f1"));
 double S=1024;
-var canvas=new Canvas{ Width=S, Height=S };
-
-// 타일 배경(파랑 그라데이션)
-canvas.Children.Add(new Border{ Width=S, Height=S, CornerRadius=new CornerRadius(220),
-  Background=new LinearGradientBrush{ StartPoint=new RelativePoint(0,0,RelativeUnit.Relative), EndPoint=new RelativePoint(1,1,RelativeUnit.Relative),
-    GradientStops={ new GradientStop(Color.Parse("#5B8DEF"),0), new GradientStop(Color.Parse("#2F5FC9"),1) } } });
-
-void Seat(double x,double y,string fill){
-  var b=new Border{ Width=260, Height=200, CornerRadius=new CornerRadius(30), Background=B(fill),
-     BorderBrush=B("#FFFFFF"), BorderThickness=new Thickness(6) };
-  Canvas.SetLeft(b,x); Canvas.SetTop(b,y); canvas.Children.Add(b);
-}
-Seat(170,200,"#E3EEFF"); Seat(594,200,"#FCDDEA");
-Seat(170,560,"#FCDDEA"); Seat(594,560,"#E3EEFF");
-
-// 가운데 흰 원반
-var disc=new Ellipse{ Width=210, Height=210, Fill=B("#FFFFFF") };
-Canvas.SetLeft(disc,407); Canvas.SetTop(disc,375); canvas.Children.Add(disc);
-
-// 교환(swap) 화살표 ⇄ (네이비)
-var nav=B("#21468B");
-canvas.Children.Add(new APath{ Fill=nav, Data=Geometry.Parse("M452,442 L556,442 L556,430 L590,454 L556,478 L556,466 L452,466 Z") });
-canvas.Children.Add(new APath{ Fill=nav, Data=Geometry.Parse("M572,506 L468,506 L468,494 L434,518 L468,542 L468,530 L572,530 Z") });
-
-canvas.Measure(new Size(S,S)); canvas.Arrange(new Rect(0,0,S,S));
-using var rtb=new RenderTargetBitmap(new PixelSize((int)S,(int)S), new Vector(96,96));
-rtb.Render(canvas);
-using(var fs=File.Create("/tmp/icongen/icon.png")) rtb.Save(fs);
+var c=new Canvas{Width=S,Height=S};
+c.Children.Add(new Border{ Width=800,Height=800,CornerRadius=new CornerRadius(184),
+  Background=new LinearGradientBrush{ StartPoint=new RelativePoint(0,0,RelativeUnit.Relative),EndPoint=new RelativePoint(1,1,RelativeUnit.Relative),
+    GradientStops={ new GradientStop(Color.Parse("#6366f1"),0),new GradientStop(Color.Parse("#8b5cf6"),0.5),new GradientStop(Color.Parse("#06b6d4"),1)}},
+  [Canvas.LeftProperty]=112.0,[Canvas.TopProperty]=112.0});
+// 공식 teaveloper 앰블럼(실루엣 비트맵)
+var emb=new Image{ Source=new Bitmap("branding/teaveloper-emblem-white.png"), Width=138, Height=276, Stretch=Stretch.Fill };
+Canvas.SetLeft(emb,512-69); Canvas.SetTop(emb,158); c.Children.Add(emb);
+// 4열 x 2행 좌석
+double sw=140, sh=110;
+double[] cols={202,362,522,682}; double[] rowsY={474,644};
+foreach(var ry in rowsY) foreach(var cx in cols) c.Children.Add(new Border{Width=sw,Height=sh,CornerRadius=new CornerRadius(22),Background=W,[Canvas.LeftProperty]=cx,[Canvas.TopProperty]=ry});
+// 중앙 교환 배지
+double bx=512,by=614;
+c.Children.Add(new Ellipse{Width=196,Height=196,Fill=indigo,[Canvas.LeftProperty]=bx-98,[Canvas.TopProperty]=by-98});
+c.Children.Add(new Ellipse{Width=168,Height=168,Fill=W,[Canvas.LeftProperty]=bx-84,[Canvas.TopProperty]=by-84});
+c.Children.Add(new APath{Fill=indigo,Data=Geometry.Parse("M470 572 L550 572 L550 561 L578 585 L550 609 L550 598 L470 598 Z")});
+c.Children.Add(new APath{Fill=indigo,Data=Geometry.Parse("M554 630 L474 630 L474 619 L446 643 L474 667 L474 656 L554 656 Z")});
+c.Measure(new Size(S,S)); c.Arrange(new Rect(0,0,S,S));
+using var rtb=new RenderTargetBitmap(new PixelSize((int)S,(int)S),new Vector(96,96)); rtb.Render(c);
+using(var fs=File.Create("app-icon-1024.png")) rtb.Save(fs);
 Console.WriteLine("done");
