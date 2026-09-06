@@ -49,8 +49,17 @@ public partial class DecorateViewModel : ViewModelBase
     [ObservableProperty] private IBrush _previewBackground = Brushes.White;
     [ObservableProperty] private Bitmap? _previewBackgroundImage;
     [ObservableProperty] private bool _hasBackground;
-    [ObservableProperty] private bool _hasMaleCell;
-    [ObservableProperty] private bool _hasFemaleCell;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAnyCellImage))]
+    private bool _hasMaleCell;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAnyCellImage))]
+    private bool _hasFemaleCell;
+
+    /// <summary>'셀 투명 배경'은 셀 이미지에만 적용된다 — 이미지가 없으면 켤 수 없다.</summary>
+    public bool HasAnyCellImage => HasMaleCell || HasFemaleCell;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ExportCommand))]

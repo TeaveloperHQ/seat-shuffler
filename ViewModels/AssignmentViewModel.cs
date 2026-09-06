@@ -92,20 +92,21 @@ public partial class AssignmentViewModel : ViewModelBase
         _state.SaveConstraints();
     }
 
-    // 마지막 하나까지 끄면 짝을 만들 수 없으므로 되돌린다.
+    // 둘 다 끄면 짝을 만들 규칙이 없어진다. 방금 끈 쪽을 되돌리면 클릭이 씹힌 것처럼
+    // 보이고 체크박스 표시도 어긋나므로, 반대쪽을 켜서 항상 하나는 남긴다.
     partial void OnPairSameChanged(bool value)
     {
-        OnPropertyChanged(nameof(PairModeDescription));
         if (_loading) return;
-        if (!value && !PairOpposite) { PairSame = true; return; }
+        if (!value && !PairOpposite) { PairOpposite = true; return; } // 이쪽 setter가 알림·저장까지 처리
+        OnPropertyChanged(nameof(PairModeDescription));
         SaveSettings();
     }
 
     partial void OnPairOppositeChanged(bool value)
     {
-        OnPropertyChanged(nameof(PairModeDescription));
         if (_loading) return;
-        if (!value && !PairSame) { PairOpposite = true; return; }
+        if (!value && !PairSame) { PairSame = true; return; }
+        OnPropertyChanged(nameof(PairModeDescription));
         SaveSettings();
     }
 
