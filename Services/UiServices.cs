@@ -38,7 +38,7 @@ public interface IExportService
     /// <summary>좌석표를 스킨·교탁반전·배경/셀 이미지 적용해 PNG로 저장하고 기본 뷰어로 연다.</summary>
     Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
         Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells, bool showBoard,
-        bool genderColors);
+        bool genderColors, string? fontFamily);
 
     /// <summary>커스텀 배경 이미지 파일을 선택해 로컬 경로를 돌려준다.</summary>
     Task<string?> PickImageAsync();
@@ -55,8 +55,15 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
     /// <summary>좌석표 제목 — 미리보기와 저장본이 같아야 하므로 한 곳에서 관리.</summary>
     public const string ChartTitle = "자리 배치표";
 
-    private static readonly FontFamily ChartFont =
+    /// <summary>글꼴을 고르지 않았을 때 쓰는 기본 글꼴(설치된 것 중 먼저 잡히는 순서).</summary>
+    public static readonly FontFamily DefaultChartFont =
         new("굴림, Gulim, Malgun Gothic, Noto Sans CJK KR, Nanum Gothic, sans-serif");
+
+    /// <summary>고른 글꼴 뒤에 한글 대체 글꼴을 붙인다 — 한글 자소가 없는 글꼴도 깨지지 않게.</summary>
+    public static FontFamily ResolveChartFont(string? name) =>
+        string.IsNullOrWhiteSpace(name)
+            ? DefaultChartFont
+            : new FontFamily($"{name}, Malgun Gothic, Noto Sans CJK KR, Nanum Gothic, 굴림, sans-serif");
 
     public async Task<string?> PickImageAsync()
     {
@@ -77,14 +84,14 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
 
     public async Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
         Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells, bool showBoard,
-        bool genderColors)
+        bool genderColors, string? fontFamily)
     {
         var sp = Owner?.StorageProvider;
         if (sp is null) return;
 
         // 미리보기와 같은 함수로 만든 비주얼을 그대로 렌더 → 화면과 저장본이 일치한다.
         var sections = ChartBuilder.Build(snapshot, skin, flip, maleCell, femaleCell, transparentCells, genderColors);
-        var visual = BuildChart(title, sections, skin, flip, background, showBoard);
+        var visual = BuildChart(title, sections, skin, flip, background, showBoard, fontFamily);
         visual.Measure(Size.Infinity);
         visual.Arrange(new Rect(visual.DesiredSize));
         var size = visual.DesiredSize;
@@ -115,7 +122,7 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
     }
 
     public static Control BuildChart(string title, IReadOnlyList<SeatSectionViewModel> sections,
-        ChartSkin skin, bool flip, Bitmap? background = null, bool showBoard = true)
+        ChartSkin skin, bool flip, Bitmap? background = null, bool showBoard = true, string? fontFamily = null)
     {
         var root = new StackPanel
         {
@@ -123,7 +130,7 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
             Margin = new Thickness(28),
             Spacing = 8,
         };
-        Avalonia.Controls.Documents.TextElement.SetFontFamily(root, ChartFont); // 자식 텍스트에 상속
+        Avalonia.Controls.Documents.TextElement.SetFontFamily(root, ResolveChartFont(fontFamily)); // 자식 텍스트에 상속
         root.Children.Add(new Border { Height = 1 }); // 첫 자식 렌더 누락 회피용 스페이서
         root.Children.Add(new TextBlock
         {

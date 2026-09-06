@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -11,6 +13,15 @@ using SeatShuffler.Models;
 using SeatShuffler.Services;
 
 namespace SeatShuffler.ViewModels;
+
+/// <summary>좌석표 글꼴 선택지. 목록 항목을 그 글꼴로 미리 보여준다.</summary>
+public sealed class ChartFontOption
+{
+    /// <summary>설정에 저장하는 값(빈 문자열이면 기본 글꼴).</summary>
+    public string Value { get; init; } = "";
+    public string Display { get; init; } = "";
+    public FontFamily Preview { get; init; } = FontFamily.Default;
+}
 
 /// <summary>출력 차트 소스(현재 배정 또는 기록).</summary>
 public sealed class ChartSource
@@ -30,10 +41,14 @@ public partial class DecorateViewModel : ViewModelBase
     private bool _loading;
 
     public ChartSkin[] Skins { get; } = ChartSkin.Presets.ToArray();
+
+    /// <summary>기본 글꼴 + 이 컴퓨터에 설치된 글꼴 목록.</summary>
+    public ChartFontOption[] Fonts { get; } = BuildFontList();
     public ObservableCollection<ChartSource> Sources { get; } = new();
 
     [ObservableProperty] private ChartSource? _selectedSource;
     [ObservableProperty] private ChartSkin? _selectedSkin;
+    [ObservableProperty] private ChartFontOption? _selectedFont;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BoardAtTop))]
@@ -84,6 +99,22 @@ public partial class DecorateViewModel : ViewModelBase
     // 디자인타임용
     public DecorateViewModel() : this(new AppState(), new UiServices()) { }
 
+    private static ChartFontOption[] BuildFontList()
+    {
+        var list = new List<ChartFontOption>
+        {
+            new() { Value = "", Display = "기본 글꼴", Preview = UiServices.DefaultChartFont },
+        };
+        try
+        {
+            // 설치된 글꼴은 앱이 초기화된 뒤에만 읽을 수 있다(디자이너·테스트에서는 실패할 수 있음).
+            foreach (var name in FontManager.Current.SystemFonts.Select(f => f.Name).Distinct().OrderBy(n => n, StringComparer.CurrentCulture))
+                list.Add(new ChartFontOption { Value = name, Display = name, Preview = new FontFamily(name) });
+        }
+        catch { /* 목록을 못 읽으면 기본 글꼴만 제공 */ }
+        return list.ToArray();
+    }
+
     private void LoadFromSettings()
     {
         _loading = true;
@@ -92,6 +123,7 @@ public partial class DecorateViewModel : ViewModelBase
         ShowBoard = _state.Settings.ShowBoard;
         TransparentCells = _state.Settings.TransparentCells;
         GenderColors = _state.Settings.GenderColors;
+        SelectedFont = Fonts.FirstOrDefault(f => f.Value == _state.Settings.ChartFontFamily) ?? Fonts[0];
         ReloadImages();
         _loading = false;
     }
@@ -153,6 +185,7 @@ public partial class DecorateViewModel : ViewModelBase
         _state.Settings.ShowBoard = ShowBoard;
         _state.Settings.TransparentCells = TransparentCells;
         _state.Settings.GenderColors = GenderColors;
+        _state.Settings.ChartFontFamily = SelectedFont?.Value ?? "";
         _state.SaveConstraints();
     }
 
@@ -193,6 +226,7 @@ public partial class DecorateViewModel : ViewModelBase
     partial void OnShowBoardChanged(bool value) { SaveSettings(); RenderPreview(); }
     partial void OnTransparentCellsChanged(bool value) { SaveSettings(); ReloadImages(); RenderPreview(); }
     partial void OnGenderColorsChanged(bool value) { SaveSettings(); RenderPreview(); }
+    partial void OnSelectedFontChanged(ChartFontOption? value) { SaveSettings(); RenderPreview(); }
     partial void OnSelectedSourceChanged(ChartSource? value) { if (!_loading) RenderPreview(); }
 
     private void RenderPreview()
@@ -211,7 +245,7 @@ public partial class DecorateViewModel : ViewModelBase
         var sections = ChartBuilder.Build(snap, skin, FlipForTeacher, _maleCellBitmap, _femaleCellBitmap,
             TransparentCells, GenderColors);
         PreviewChart = UiServices.BuildChart(UiServices.ChartTitle, sections, skin, FlipForTeacher,
-            _backgroundBitmap, ShowBoard);
+            _backgroundBitmap, ShowBoard, SelectedFont?.Value);
         CanExport = true;
         Status = FlipForTeacher
             ? "교탁 기준(좌석 거울반전). '출력'으로 PNG 저장 후 인쇄하세요."
@@ -227,7 +261,8 @@ public partial class DecorateViewModel : ViewModelBase
         if (snap is null) return;
         await _ui.ExportSeatChartAsync(
             UiServices.ChartTitle, snap, SelectedSkin ?? ChartSkin.Presets[0], FlipForTeacher,
-            _backgroundBitmap, _maleCellBitmap, _femaleCellBitmap, TransparentCells, ShowBoard, GenderColors);
+            _backgroundBitmap, _maleCellBitmap, _femaleCellBitmap, TransparentCells, ShowBoard, GenderColors,
+            SelectedFont?.Value);
     }
 
     /// <summary>탭 진입 시 호출 — 소스 목록(최신 기록 포함)·미리보기 갱신.</summary>

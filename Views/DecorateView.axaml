@@ -56,6 +56,22 @@
 
                 <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,4" VerticalAlignment="Center"/>
 
+                <!-- 글꼴 -->
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,4">
+                    <TextBlock Text="글꼴" VerticalAlignment="Center" Foreground="#5A6270"/>
+                    <ComboBox ItemsSource="{Binding Fonts}" SelectedItem="{Binding SelectedFont}"
+                              MinWidth="160" MaxDropDownHeight="360"
+                              ToolTip.Tip="좌석표(미리보기·저장 PNG)에 쓸 글꼴입니다. 한글이 없는 글꼴을 골라도 한글은 자동으로 대체 글꼴로 나옵니다.">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate DataType="vm:ChartFontOption">
+                                <TextBlock Text="{Binding Display}" FontFamily="{Binding Preview}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+
+                <Border Width="1" Height="28" Background="#D5D5D5" Margin="12,4" VerticalAlignment="Center"/>
+
                 <!-- 커스텀 이미지 -->
                 <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="0,4">
                     <Button Content="배경" Command="{Binding LoadBackgroundCommand}"/>

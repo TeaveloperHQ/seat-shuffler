@@ -56,6 +56,9 @@ public sealed class AssignmentSettings
     /// <summary>좌석을 남/여 색으로 구분. 끄면 모든 칸이 한 가지 색이고 셀 이미지도 쓰지 않는다.</summary>
     public bool GenderColors { get; set; } = true;
 
+    /// <summary>좌석표 글꼴 이름. 비어 있으면 기본 글꼴.</summary>
+    public string ChartFontFamily { get; set; } = "";
+
     /// <summary>출력에 '칠판(앞)' 표시(배경과 안 맞으면 끌 수 있음).</summary>
     public bool ShowBoard { get; set; } = true;
 }
