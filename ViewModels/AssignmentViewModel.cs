@@ -141,7 +141,6 @@ public partial class AssignmentViewModel : ViewModelBase
 
         if (!result.Ok)
         {
-            Status = result.Error ?? "배정 실패";
             CanConfirm = false;
             _candidate = null;
             _assignment.Clear();
@@ -149,6 +148,7 @@ public partial class AssignmentViewModel : ViewModelBase
             _state.LastChart = null;
             RelaxationBanner = "";
             RenderPreview();
+            Status = result.Error ?? "배정 실패"; // RenderPreview가 안내 문구를 덮어쓰므로 그 뒤에 적는다
             return;
         }
 
