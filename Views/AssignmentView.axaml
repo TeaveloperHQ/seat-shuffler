@@ -16,11 +16,13 @@
         <Border Grid.Row="0" Background="#F4F5F7" CornerRadius="8" Padding="12" Margin="0,0,0,8">
             <WrapPanel Orientation="Horizontal">
                 <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,16,4" VerticalAlignment="Center"
-                            ToolTip.Tip="둘 다 체크하면 동성·이성을 따지지 않고 무작위로 짝을 만듭니다.">
+                            ToolTip.Tip="동성짝만 = 같은 성별끼리, 이성짝만 = 다른 성별끼리, 둘 다 체크 = 성별을 따지지 않고 무작위. 둘 다 끌 수는 없습니다.">
                     <CheckBox Content="동성짝" IsChecked="{Binding PairSame}"
                               IsEnabled="{Binding PairOptionsEnabled}"/>
                     <CheckBox Content="이성짝" IsChecked="{Binding PairOpposite}"
                               IsEnabled="{Binding PairOptionsEnabled}"/>
+                    <TextBlock Text="{Binding PairModeDescription}" Foreground="#5A6270"
+                               FontSize="12" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Vertical" Margin="0,0,16,0" VerticalAlignment="Center">
                     <CheckBox Content="이전과 같은 자리 회피" IsChecked="{Binding AvoidSameSeat}"/>

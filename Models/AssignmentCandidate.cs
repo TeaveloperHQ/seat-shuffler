@@ -12,4 +12,7 @@ public sealed class AssignmentCandidate
 
     public long Seed { get; init; }
     public RelaxationReport Relaxation { get; init; } = new();
+
+    /// <summary>명단·좌석과 맞지 않아 이번 배정에서 무시한 제약 안내(모순 자체는 아님).</summary>
+    public IReadOnlyList<string> IgnoredNotices { get; init; } = new List<string>();
 }

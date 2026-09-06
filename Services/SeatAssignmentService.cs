@@ -28,6 +28,9 @@ public sealed class SeatAssignmentService
 {
     private const int NodeBudget = 400_000;
 
+    /// <summary>성별 짝을 통째로 버리기 전에 시도해 볼 '예외 짝' 최대 수(1쌍씩 늘려가며 재시도).</summary>
+    private const int MaxGenderExceptions = 6;
+
     private readonly record struct Constraints(
         bool Gender, bool SameSeat, bool SamePair, bool FrontRow, bool GenderSeat,
         bool Forbidden, bool Required, bool Fixed, bool Avoid);
@@ -57,6 +60,9 @@ public sealed class SeatAssignmentService
 
         var keys = students.Select(s => s.Key).ToHashSet();
 
+        // 명단·좌석과 맞지 않아 버려지는 제약을 세어 사용자에게 알린다(조용히 사라지면 오해를 부른다).
+        int ghostRefs = 0, offGridPins = 0, duplicateRequired = 0;
+
         var forbiddenSeat = BuildForbiddenSeat(history);
         var historyPair = BuildForbiddenPair(history);
 
@@ -65,7 +71,7 @@ public sealed class SeatAssignmentService
         var apartDist = new Dictionary<string, List<(string Partner, int MinDist)>>();
         foreach (var p in constraints.ForbiddenPairs)
         {
-            if (p.A == p.B || !keys.Contains(p.A) || !keys.Contains(p.B)) continue;
+            if (p.A == p.B || !keys.Contains(p.A) || !keys.Contains(p.B)) { ghostRefs++; continue; }
             int d = DistanceLevels.ApartMinDistance(p.Level);
             if (d < 0) forbiddenDeskmate.Add(PairKey(p.A, p.B));
             else { AddDist(apartDist, p.A, p.B, d); AddDist(apartDist, p.B, p.A, d); }
@@ -76,11 +82,12 @@ public sealed class SeatAssignmentService
         var closeDist = new Dictionary<string, List<(string Partner, int MaxDist)>>();
         foreach (var p in constraints.RequiredPairs)
         {
-            if (p.A == p.B || !keys.Contains(p.A) || !keys.Contains(p.B)) continue;
+            if (p.A == p.B || !keys.Contains(p.A) || !keys.Contains(p.B)) { ghostRefs++; continue; }
             int d = DistanceLevels.CloseMaxDistance(p.Level);
             if (d < 0)
             {
-                if (requiredPartner.ContainsKey(p.A) || requiredPartner.ContainsKey(p.B)) continue;
+                // 한 학생에게 '반드시 짝'이 둘 이상이면 앞선 것만 살린다.
+                if (requiredPartner.ContainsKey(p.A) || requiredPartner.ContainsKey(p.B)) { duplicateRequired++; continue; }
                 requiredPartner[p.A] = p.B;
                 requiredPartner[p.B] = p.A;
             }
@@ -88,6 +95,7 @@ public sealed class SeatAssignmentService
         }
 
         var frontRowKeys = constraints.FrontRowStudents.Where(keys.Contains).ToHashSet();
+        ghostRefs += constraints.FrontRowStudents.Count - frontRowKeys.Count;
         int frontRowCount = Math.Max(1, constraints.FrontRowCount);
 
         // 현재 좌석 범위 내의 남녀 자리만 채택.
@@ -102,7 +110,8 @@ public sealed class SeatAssignmentService
         foreach (var pin in constraints.FixedSeats)
         {
             var pos = pin.Position;
-            if (!keys.Contains(pin.StudentKey) || !seatPositions.Contains(pos)) continue;
+            if (!keys.Contains(pin.StudentKey)) { ghostRefs++; continue; }
+            if (!seatPositions.Contains(pos)) { offGridPins++; continue; } // 범위 밖이거나 '비움' 좌석
             if (fixedOf.ContainsKey(pin.StudentKey) || fixedAt.ContainsKey(pos)) continue;
             fixedOf[pin.StudentKey] = pos;
             fixedAt[pos] = pin.StudentKey;
@@ -113,12 +122,16 @@ public sealed class SeatAssignmentService
         foreach (var pin in constraints.AvoidedSeats)
         {
             var pos = pin.Position;
-            if (!keys.Contains(pin.StudentKey) || !seatPositions.Contains(pos)) continue;
+            if (!keys.Contains(pin.StudentKey)) { ghostRefs++; continue; }
+            if (!seatPositions.Contains(pos)) { offGridPins++; continue; }
             if (!avoidOf.TryGetValue(pin.StudentKey, out var set)) { set = new(); avoidOf[pin.StudentKey] = set; }
             set.Add(pos);
         }
 
         bool hasGender = config.HasPairs && config.PairMode != PairMode.Any; // 무작위면 성별 조건 없음
+        // 기록이 없으면 회피할 대상도 없다 — 사다리에 넣으면 '완화했다'는 헛배너가 뜬다.
+        bool hasSameSeat = options.AvoidSameSeat && forbiddenSeat.Count > 0;
+        bool hasSamePair = options.AvoidSamePair && historyPair.Count > 0;
         bool hasFront = frontRowKeys.Count > 0;
         bool hasGenderSeat = effectiveGenderSeats.Count > 0;
         bool hasForbidden = forbiddenDeskmate.Count > 0 || apartDist.Count > 0;
@@ -128,8 +141,8 @@ public sealed class SeatAssignmentService
 
         var top = new Constraints(
             Gender: hasGender,
-            SameSeat: options.AvoidSameSeat,
-            SamePair: options.AvoidSamePair,
+            SameSeat: hasSameSeat,
+            SamePair: hasSamePair,
             FrontRow: hasFront,
             GenderSeat: hasGenderSeat,
             Forbidden: hasForbidden,
@@ -137,41 +150,65 @@ public sealed class SeatAssignmentService
             Fixed: hasFixed,
             Avoid: hasAvoid);
 
-        foreach (var level in BuildLadder(top, constraints.EffectivePriority()))
+        var ladder = BuildLadder(top, constraints.EffectivePriority());
+        for (int li = 0; li < ladder.Count; li++)
         {
-            var solver = new Solver(students, layout, level, config.PairMode,
-                forbiddenSeat, historyPair, forbiddenDeskmate, apartDist, requiredPartner, closeDist,
-                frontRowKeys, frontRowCount, effectiveGenderSeats, fixedOf, fixedAt, avoidOf,
-                config.Cols, seed, NodeBudget);
+            var level = ladder[li];
 
-            if (solver.Solve(out var seatToKey))
+            // 이 단계 다음에 성별 짝이 꺼진다면, 통째로 버리기 전에 '예외 n쌍'만 허용해 최대한 맞춰본다.
+            bool genderDropsNext = level.Gender && (li + 1 >= ladder.Count || !ladder[li + 1].Gender);
+            int maxExceptions = genderDropsNext ? MaxGenderExceptions : 0;
+
+            for (int exceptions = 0; exceptions <= maxExceptions; exceptions++)
             {
-                var report = new RelaxationReport
+                var solver = new Solver(students, layout, level, config.PairMode,
+                    forbiddenSeat, historyPair, forbiddenDeskmate, apartDist, requiredPartner, closeDist,
+                    frontRowKeys, frontRowCount, effectiveGenderSeats, fixedOf, fixedAt, avoidOf,
+                    config.Cols, seed, NodeBudget, exceptions);
+
+                if (solver.Solve(out var seatToKey))
                 {
-                    RelaxedGenderPairing = hasGender && !level.Gender,
-                    RelaxedSameSeat = options.AvoidSameSeat && !level.SameSeat,
-                    RelaxedSamePair = options.AvoidSamePair && !level.SamePair,
-                    RelaxedFrontRow = hasFront && !level.FrontRow,
-                    RelaxedGenderSeat = hasGenderSeat && !level.GenderSeat,
-                    RelaxedForbiddenPair = hasForbidden && !level.Forbidden,
-                    RelaxedRequiredPair = hasRequired && !level.Required,
-                    RelaxedFixedSeat = hasFixed && !level.Fixed,
-                    RelaxedAvoidSeat = hasAvoid && !level.Avoid,
-                };
-                return new AssignmentResult
-                {
-                    Candidate = new AssignmentCandidate
+                    var report = new RelaxationReport
                     {
-                        Config = config.Clone(),
-                        SeatToStudentKey = seatToKey,
-                        Seed = seed,
-                        Relaxation = report,
-                    }
-                };
+                        RelaxedGenderPairing = hasGender && !level.Gender,
+                        GenderPairExceptions = solver.GenderExceptions,
+                        RelaxedSameSeat = hasSameSeat && !level.SameSeat,
+                        RelaxedSamePair = hasSamePair && !level.SamePair,
+                        RelaxedFrontRow = hasFront && !level.FrontRow,
+                        RelaxedGenderSeat = hasGenderSeat && !level.GenderSeat,
+                        RelaxedForbiddenPair = hasForbidden && !level.Forbidden,
+                        RelaxedRequiredPair = hasRequired && !level.Required,
+                        RelaxedFixedSeat = hasFixed && !level.Fixed,
+                        RelaxedAvoidSeat = hasAvoid && !level.Avoid,
+                    };
+                    return new AssignmentResult
+                    {
+                        Candidate = new AssignmentCandidate
+                        {
+                            Config = config.Clone(),
+                            SeatToStudentKey = seatToKey,
+                            Seed = seed,
+                            Relaxation = report,
+                            IgnoredNotices = BuildIgnoredNotices(ghostRefs, offGridPins, duplicateRequired),
+                        }
+                    };
+                }
             }
         }
 
         return new AssignmentResult { Error = "배정에 실패했습니다. 구성을 확인하세요." };
+    }
+
+    private static List<string> BuildIgnoredNotices(int ghostRefs, int offGridPins, int duplicateRequired)
+    {
+        var notices = new List<string>();
+        if (ghostRefs > 0)
+            notices.Add($"명단에 없는 학생을 가리키는 제약 {ghostRefs}건은 무시했습니다(명단에서 지웠거나 학번·이름이 바뀐 경우).");
+        if (offGridPins > 0)
+            notices.Add($"지금 좌석에 없는 자리를 가리키는 고정·회피 {offGridPins}건은 무시했습니다(분단·행·열 밖이거나 '비움' 좌석).");
+        if (duplicateRequired > 0)
+            notices.Add($"한 학생에게 '반드시 짝'이 겹쳐 지정된 {duplicateRequired}건은 무시했습니다.");
+        return notices;
     }
 
     // 사용자 우선순위(앞=높음)에 따라 완화 사다리 구성: 낮은 순위(뒤)부터 차례로 해제.
@@ -275,6 +312,8 @@ public sealed class SeatAssignmentService
         private readonly Dictionary<string, HashSet<SeatPosition>> _avoidOf;
         private readonly int _cols;
         private readonly int _budget;
+        private readonly int _genderExceptionBudget;
+        private int _genderExceptions;
         private readonly Dictionary<SeatPosition, string> _placed = new();
         private readonly Dictionary<string, SeatPosition> _posOf = new();
         private int _nodes;
@@ -289,7 +328,7 @@ public sealed class SeatAssignmentService
             Dictionary<SeatPosition, Gender> genderSeats,
             Dictionary<string, SeatPosition> fixedOf, Dictionary<SeatPosition, string> fixedAt,
             Dictionary<string, HashSet<SeatPosition>> avoidOf,
-            int cols, long seed, int budget)
+            int cols, long seed, int budget, int genderExceptionBudget)
         {
             var rng = new Random(unchecked((int)seed));
             // 제약이 강한 학생(앞자리·짝필수·거리·고정·회피)을 먼저 배치 → 깊은 백트래킹 감소.
@@ -322,7 +361,11 @@ public sealed class SeatAssignmentService
             _avoidOf = avoidOf;
             _cols = cols;
             _budget = budget;
+            _genderExceptionBudget = genderExceptionBudget;
         }
+
+        /// <summary>해를 찾았을 때 성별 규칙을 어긴 짝 수(성별 규칙이 꺼진 레벨에서는 0).</summary>
+        public int GenderExceptions => _genderExceptions;
 
         public bool Solve(out IReadOnlyDictionary<SeatPosition, string> result)
         {
@@ -335,7 +378,7 @@ public sealed class SeatAssignmentService
         {
             if (_remaining == 0) return true;
             if (++_nodes > _budget) return false;
-            if (gi >= _groups.Count) return false;
+            if (gi >= _groups.Count) return false; // 남은 좌석보다 학생이 많음 — 더 볼 것 없음
 
             var g = _groups[gi];
 
@@ -365,9 +408,11 @@ public sealed class SeatAssignmentService
                     if (j == i || _used[j]) continue;
                     var sb = _students[j];
                     if (!CanSeat(sb, b)) continue;
-                    if (!CanPair(sa, sb)) continue;
+                    if (!CanPair(sa, sb, out bool genderException)) continue;
                     Place(b, j);
+                    if (genderException) _genderExceptions++;
                     if (Backtrack(gi + 1)) return true;
+                    if (genderException) _genderExceptions--;
                     Unplace(b, j);
                 }
 
@@ -424,8 +469,9 @@ public sealed class SeatAssignmentService
             return CanSeat(s, pos);
         }
 
-        private bool CanPair(Student a, Student b)
+        private bool CanPair(Student a, Student b, out bool genderException)
         {
+            genderException = false;
             if (_c.Required)
             {
                 // 한쪽이 짝 필수면 상대가 반드시 지정 파트너여야 한다.
@@ -434,7 +480,12 @@ public sealed class SeatAssignmentService
             }
             if (_c.Forbidden && _forbiddenDeskmate.Contains(PairKey(a.Key, b.Key))) return false;
             if (_c.SamePair && _historyPair.Contains(PairKey(a.Key, b.Key))) return false;
-            if (_c.Gender && !GenderOk(a.Gender, b.Gender)) return false;
+            if (_c.Gender && !GenderOk(a.Gender, b.Gender))
+            {
+                // 성별 규칙 위반은 예산(예외 짝 수) 안에서만 허용 — 0이면 종전과 같이 금지.
+                if (_genderExceptions >= _genderExceptionBudget) return false;
+                genderException = true;
+            }
             return true;
         }
 

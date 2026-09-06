@@ -48,6 +48,16 @@ public partial class AssignmentViewModel : ViewModelBase
         _ => "동성짝",
     };
 
+    /// <summary>지금 체크 상태가 뜻하는 규칙 — 체크박스 옆에 그대로 보여준다.</summary>
+    public string PairModeDescription => !PairOptionsEnabled
+        ? "열이 1이라 단독석 — 짝이 없습니다"
+        : CurrentPairMode switch
+        {
+            PairMode.SameGender => "→ 짝은 같은 성별끼리",
+            PairMode.OppositeGender => "→ 짝은 다른 성별끼리",
+            _ => "→ 성별을 따지지 않고 무작위",
+        };
+
     public bool HasRelaxation => !string.IsNullOrEmpty(RelaxationBanner);
 
     public AssignmentViewModel(AppState state, SeatAssignmentService service)
@@ -85,6 +95,7 @@ public partial class AssignmentViewModel : ViewModelBase
     // 마지막 하나까지 끄면 짝을 만들 수 없으므로 되돌린다.
     partial void OnPairSameChanged(bool value)
     {
+        OnPropertyChanged(nameof(PairModeDescription));
         if (_loading) return;
         if (!value && !PairOpposite) { PairSame = true; return; }
         SaveSettings();
@@ -92,6 +103,7 @@ public partial class AssignmentViewModel : ViewModelBase
 
     partial void OnPairOppositeChanged(bool value)
     {
+        OnPropertyChanged(nameof(PairModeDescription));
         if (_loading) return;
         if (!value && !PairSame) { PairOpposite = true; return; }
         SaveSettings();
@@ -149,7 +161,9 @@ public partial class AssignmentViewModel : ViewModelBase
         Status = $"{placed}명 배정됨 · 분단{config.Sections}·행{config.Rows}·열{config.Cols}" +
                  (config.HasPairs ? $" · {PairModeLabel(config.PairMode)}" : " · 단독석") +
                  " · 좌석 둘을 클릭하면 수동 교체";
-        RelaxationBanner = _candidate.Relaxation.Summary;
+        RelaxationBanner = string.Join("\n",
+            new[] { _candidate.Relaxation.Summary }.Concat(_candidate.IgnoredNotices)
+                .Where(t => !string.IsNullOrEmpty(t)));
         CanConfirm = true;
     }
 
@@ -273,6 +287,7 @@ public partial class AssignmentViewModel : ViewModelBase
         _state.LastChart = null;
         RelaxationBanner = "";
         OnPropertyChanged(nameof(PairOptionsEnabled));
+        OnPropertyChanged(nameof(PairModeDescription));
         RenderPreview();
     }
 }

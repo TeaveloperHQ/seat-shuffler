@@ -6,6 +6,10 @@ namespace SeatShuffler.Models;
 public sealed class RelaxationReport
 {
     public bool RelaxedGenderPairing { get; set; }
+
+    /// <summary>동성/이성 짝을 지키되 어쩔 수 없이 예외로 둔 짝 수(0이면 완전히 지켜짐).</summary>
+    public int GenderPairExceptions { get; set; }
+
     public bool RelaxedSameSeat { get; set; }
     public bool RelaxedSamePair { get; set; }
     public bool RelaxedFrontRow { get; set; }
@@ -16,7 +20,7 @@ public sealed class RelaxationReport
     public bool RelaxedAvoidSeat { get; set; }
 
     public bool AnyRelaxed =>
-        RelaxedGenderPairing || RelaxedSameSeat || RelaxedSamePair ||
+        RelaxedGenderPairing || GenderPairExceptions > 0 || RelaxedSameSeat || RelaxedSamePair ||
         RelaxedFrontRow || RelaxedGenderSeat || RelaxedForbiddenPair || RelaxedRequiredPair ||
         RelaxedFixedSeat || RelaxedAvoidSeat;
 
@@ -26,8 +30,17 @@ public sealed class RelaxationReport
         get
         {
             if (!AnyRelaxed) return "";
+
+            // 성별 짝 예외만 있는 경우는 '최대한 맞췄다'는 뜻이라 따로 안내한다.
+            bool onlyGenderExceptions = GenderPairExceptions > 0 && !RelaxedGenderPairing &&
+                !RelaxedSameSeat && !RelaxedSamePair && !RelaxedFrontRow && !RelaxedGenderSeat &&
+                !RelaxedForbiddenPair && !RelaxedRequiredPair && !RelaxedFixedSeat && !RelaxedAvoidSeat;
+            if (onlyGenderExceptions)
+                return $"성별 짝을 최대한 맞췄지만 {GenderPairExceptions}쌍은 예외입니다(인원 구성상 불가피).";
+
             var parts = new List<string>();
             if (RelaxedGenderPairing) parts.Add("동성/이성 짝");
+            else if (GenderPairExceptions > 0) parts.Add($"동성/이성 짝(예외 {GenderPairExceptions}쌍)");
             if (RelaxedSameSeat) parts.Add("같은 자리 회피");
             if (RelaxedSamePair) parts.Add("같은 짝 회피");
             if (RelaxedFrontRow) parts.Add("앞자리 지정");
