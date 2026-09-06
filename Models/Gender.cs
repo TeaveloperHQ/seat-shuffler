@@ -5,7 +5,7 @@ public enum Gender
 {
     Unspecified = 0,
     Male = 1,   // 남
-    Female = 2, // 녀
+    Female = 2, // 여
 }
 
 public static class GenderExtensions
@@ -13,7 +13,7 @@ public static class GenderExtensions
     public static string ToKorean(this Gender g) => g switch
     {
         Gender.Male => "남",
-        Gender.Female => "녀",
+        Gender.Female => "여",
         _ => "미지정",
     };
 }

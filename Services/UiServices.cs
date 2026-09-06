@@ -28,6 +28,9 @@ public sealed record PickedFile(Stream Stream, string Name);
 public interface IDialogService
 {
     Task<PickedFile?> PickSpreadsheetAsync();
+
+    /// <summary>저장 위치를 물어본 뒤 <paramref name="write"/>로 내용을 쓰고, 저장된 로컬 경로를 돌려준다(취소 시 null).</summary>
+    Task<string?> SaveSpreadsheetAsync(string suggestedFileName, Action<Stream> write);
 }
 
 public interface IExportService
@@ -208,6 +211,31 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
         var clip = Owner?.Clipboard;
         if (clip is null) return null;
         return await clip.GetTextAsync();
+    }
+
+    public async Task<string?> SaveSpreadsheetAsync(string suggestedFileName, Action<Stream> write)
+    {
+        var sp = Owner?.StorageProvider;
+        if (sp is null) return null;
+
+        var file = await sp.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "엑셀 양식 저장",
+            SuggestedFileName = suggestedFileName,
+            DefaultExtension = "xlsx",
+            FileTypeChoices = new[]
+            {
+                new FilePickerFileType("엑셀 통합 문서") { Patterns = new[] { "*.xlsx" } },
+            },
+        });
+        if (file is null) return null;
+
+        await using (var stream = await file.OpenWriteAsync())
+        {
+            if (stream.CanSeek) stream.SetLength(0); // 기존 파일 덮어쓸 때 잔여 바이트 제거
+            write(stream);
+        }
+        return file.TryGetLocalPath();
     }
 
     public async Task<PickedFile?> PickSpreadsheetAsync()

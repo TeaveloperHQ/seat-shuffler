@@ -118,7 +118,7 @@ public sealed class SeatAssignmentService
             set.Add(pos);
         }
 
-        bool hasGender = config.HasPairs;
+        bool hasGender = config.HasPairs && config.PairMode != PairMode.Any; // 무작위면 성별 조건 없음
         bool hasFront = frontRowKeys.Count > 0;
         bool hasGenderSeat = effectiveGenderSeats.Count > 0;
         bool hasForbidden = forbiddenDeskmate.Count > 0 || apartDist.Count > 0;
@@ -438,10 +438,12 @@ public sealed class SeatAssignmentService
             return true;
         }
 
-        private bool GenderOk(Gender a, Gender b)
-            => _pairMode == PairMode.SameGender
-                ? a == b || a == Gender.Unspecified || b == Gender.Unspecified
-                : a != b && a != Gender.Unspecified && b != Gender.Unspecified;
+        private bool GenderOk(Gender a, Gender b) => _pairMode switch
+        {
+            PairMode.SameGender => a == b || a == Gender.Unspecified || b == Gender.Unspecified,
+            PairMode.OppositeGender => a != b && a != Gender.Unspecified && b != Gender.Unspecified,
+            _ => true, // Any: 동성·이성 무작위
+        };
 
         private void Place(SeatPosition pos, int idx)
         {

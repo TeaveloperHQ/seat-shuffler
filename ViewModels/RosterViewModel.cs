@@ -68,6 +68,16 @@ public partial class RosterViewModel : ViewModelBase
         Apply(_import.ParseDelimited(text));
     }
 
+    /// <summary>업로드용 엑셀 양식(학번/이름/성별)을 내려받는다.</summary>
+    [RelayCommand]
+    private async Task DownloadTemplateAsync()
+    {
+        var path = await _dialog.SaveSpreadsheetAsync(
+            RosterTemplateService.SuggestedFileName, RosterTemplateService.WriteXlsx);
+        if (path is null) return;
+        Status = $"양식을 저장했습니다 — {path}";
+    }
+
     [RelayCommand]
     private async Task ImportFileAsync()
     {
@@ -114,6 +124,6 @@ public partial class RosterViewModel : ViewModelBase
     {
         var m = Students.Count(s => s.Gender == Gender.Male);
         var f = Students.Count(s => s.Gender == Gender.Female);
-        Status = $"총 {Students.Count}명 (남 {m} · 녀 {f})";
+        Status = $"총 {Students.Count}명 (남 {m} · 여 {f})";
     }
 }

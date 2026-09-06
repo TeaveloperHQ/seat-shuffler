@@ -5,7 +5,7 @@ using SeatShuffler.Models;
 
 namespace SeatShuffler.Converters;
 
-/// <summary>Gender enum ↔ 한글 표기(남/녀/미지정).</summary>
+/// <summary>Gender enum ↔ 한글 표기(남/여/미지정).</summary>
 public sealed class GenderKoreanConverter : IValueConverter
 {
     public static readonly GenderKoreanConverter Instance = new();
@@ -17,7 +17,7 @@ public sealed class GenderKoreanConverter : IValueConverter
         => value switch
         {
             "남" => Gender.Male,
-            "녀" => Gender.Female,
+            "여" or "녀" => Gender.Female,
             _ => Gender.Unspecified,
         };
 }

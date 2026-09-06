@@ -19,6 +19,7 @@ public partial class AssignmentViewModel : ViewModelBase
     private SeatPosition? _pendingSwap;
     private bool _loading;
 
+    // 두 체크박스: 둘 다 켜면 동성·이성 무작위. 최소 하나는 켜져 있어야 한다.
     [ObservableProperty] private bool _pairSame = true;
     [ObservableProperty] private bool _pairOpposite;
     [ObservableProperty] private bool _avoidSameSeat = true;
@@ -34,6 +35,19 @@ public partial class AssignmentViewModel : ViewModelBase
     public ObservableCollection<SeatSectionViewModel> SectionsView { get; } = new();
 
     public bool PairOptionsEnabled => _state.Settings.Cols >= 2;
+
+    /// <summary>체크 조합 → 짝 성별 규칙. 둘 다 켜짐 = 무작위.</summary>
+    private PairMode CurrentPairMode =>
+        PairSame && PairOpposite ? PairMode.Any :
+        PairOpposite ? PairMode.OppositeGender : PairMode.SameGender;
+
+    private static string PairModeLabel(PairMode mode) => mode switch
+    {
+        PairMode.OppositeGender => "이성짝",
+        PairMode.Any => "동성/이성 무작위",
+        _ => "동성짝",
+    };
+
     public bool HasRelaxation => !string.IsNullOrEmpty(RelaxationBanner);
 
     public AssignmentViewModel(AppState state, SeatAssignmentService service)
@@ -51,8 +65,8 @@ public partial class AssignmentViewModel : ViewModelBase
     {
         _loading = true;
         var s = _state.Settings;
-        PairOpposite = s.PairMode == PairMode.OppositeGender;
-        PairSame = !PairOpposite;
+        PairSame = s.PairMode is PairMode.SameGender or PairMode.Any;
+        PairOpposite = s.PairMode is PairMode.OppositeGender or PairMode.Any;
         AvoidSameSeat = s.AvoidSameSeat;
         AvoidSamePair = s.AvoidSamePair;
         _loading = false;
@@ -62,14 +76,27 @@ public partial class AssignmentViewModel : ViewModelBase
     {
         if (_loading) return;
         var s = _state.Settings;
-        s.PairMode = PairOpposite ? PairMode.OppositeGender : PairMode.SameGender;
+        s.PairMode = CurrentPairMode;
         s.AvoidSameSeat = AvoidSameSeat;
         s.AvoidSamePair = AvoidSamePair;
         _state.SaveConstraints();
     }
 
-    partial void OnPairSameChanged(bool value) { if (value) PairOpposite = false; SaveSettings(); }
-    partial void OnPairOppositeChanged(bool value) { if (value) PairSame = false; SaveSettings(); }
+    // 마지막 하나까지 끄면 짝을 만들 수 없으므로 되돌린다.
+    partial void OnPairSameChanged(bool value)
+    {
+        if (_loading) return;
+        if (!value && !PairOpposite) { PairSame = true; return; }
+        SaveSettings();
+    }
+
+    partial void OnPairOppositeChanged(bool value)
+    {
+        if (_loading) return;
+        if (!value && !PairSame) { PairOpposite = true; return; }
+        SaveSettings();
+    }
+
     partial void OnAvoidSameSeatChanged(bool value) => SaveSettings();
     partial void OnAvoidSamePairChanged(bool value) => SaveSettings();
     partial void OnRelaxationBannerChanged(string value) => OnPropertyChanged(nameof(HasRelaxation));
@@ -79,7 +106,7 @@ public partial class AssignmentViewModel : ViewModelBase
         Sections = Math.Max(1, _state.Settings.Sections),
         Rows = Math.Max(1, _state.Settings.Rows),
         Cols = Math.Max(1, _state.Settings.Cols),
-        PairMode = PairOpposite ? PairMode.OppositeGender : PairMode.SameGender,
+        PairMode = CurrentPairMode,
     };
 
     private HashSet<SeatPosition> EmptySeats() =>
@@ -120,7 +147,7 @@ public partial class AssignmentViewModel : ViewModelBase
 
         int placed = _assignment.Count;
         Status = $"{placed}명 배정됨 · 분단{config.Sections}·행{config.Rows}·열{config.Cols}" +
-                 (config.HasPairs ? $" · {(config.PairMode == PairMode.OppositeGender ? "이성짝" : "동성짝")}" : " · 단독석") +
+                 (config.HasPairs ? $" · {PairModeLabel(config.PairMode)}" : " · 단독석") +
                  " · 좌석 둘을 클릭하면 수동 교체";
         RelaxationBanner = _candidate.Relaxation.Summary;
         CanConfirm = true;

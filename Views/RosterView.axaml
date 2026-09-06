@@ -24,6 +24,8 @@
             <Button Content="삭제" Command="{Binding DeleteSelectedCommand}" Margin="0,0,6,0"/>
             <Button Content="붙여넣기" Command="{Binding PasteFromClipboardCommand}" Margin="0,0,6,0"/>
             <Button Content="엑셀/CSV 업로드" Command="{Binding ImportFileCommand}" Margin="0,0,6,0"/>
+            <Button Content="양식 내려받기" Command="{Binding DownloadTemplateCommand}" Margin="0,0,6,0"
+                    ToolTip.Tip="학번·이름·성별 열이 있는 엑셀 양식을 저장합니다. 예시 행을 지우고 명단을 채운 뒤 업로드하세요."/>
             <Button Content="전체 비우기" Command="{Binding ClearAllCommand}" Margin="0,0,12,0"/>
             <CheckBox Content="가져올 때 기존 명단 교체" IsChecked="{Binding ReplaceOnImport}"
                       VerticalAlignment="Center"/>

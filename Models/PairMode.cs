@@ -7,4 +7,6 @@ public enum PairMode
     SameGender = 0,
     /// <summary>이성짝 — 짝의 두 명이 다른 성별(둘 다 성별이 지정되어야 함).</summary>
     OppositeGender = 1,
+    /// <summary>동성·이성 무작위 — 짝의 성별을 따지지 않는다.</summary>
+    Any = 2,
 }
