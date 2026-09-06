@@ -37,7 +37,8 @@ public interface IExportService
 {
     /// <summary>좌석표를 스킨·교탁반전·배경/셀 이미지 적용해 PNG로 저장하고 기본 뷰어로 연다.</summary>
     Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
-        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells, bool showBoard);
+        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells, bool showBoard,
+        bool genderColors);
 
     /// <summary>커스텀 배경 이미지 파일을 선택해 로컬 경로를 돌려준다.</summary>
     Task<string?> PickImageAsync();
@@ -50,6 +51,9 @@ public interface IExportService
 public sealed class UiServices : IClipboardService, IDialogService, IFolderService, IExportService
 {
     public TopLevel? Owner { get; set; }
+
+    /// <summary>좌석표 제목 — 미리보기와 저장본이 같아야 하므로 한 곳에서 관리.</summary>
+    public const string ChartTitle = "자리 배치표";
 
     private static readonly FontFamily ChartFont =
         new("굴림, Gulim, Malgun Gothic, Noto Sans CJK KR, Nanum Gothic, sans-serif");
@@ -72,13 +76,14 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
     }
 
     public async Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
-        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells, bool showBoard)
+        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells, bool showBoard,
+        bool genderColors)
     {
         var sp = Owner?.StorageProvider;
         if (sp is null) return;
 
-        // 스킨·교탁반전·배경·셀 이미지 적용한 좌석표를 별도 비주얼로 구성해 렌더.
-        var sections = ChartBuilder.Build(snapshot, skin, flip, maleCell, femaleCell, transparentCells);
+        // 미리보기와 같은 함수로 만든 비주얼을 그대로 렌더 → 화면과 저장본이 일치한다.
+        var sections = ChartBuilder.Build(snapshot, skin, flip, maleCell, femaleCell, transparentCells, genderColors);
         var visual = BuildChart(title, sections, skin, flip, background, showBoard);
         visual.Measure(Size.Infinity);
         visual.Arrange(new Rect(visual.DesiredSize));

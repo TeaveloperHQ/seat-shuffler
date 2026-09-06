@@ -61,14 +61,19 @@
                     <Button Content="배경" Command="{Binding LoadBackgroundCommand}"/>
                     <Button Content="✕" Command="{Binding ClearBackgroundCommand}" IsEnabled="{Binding HasBackground}" Padding="7,4"/>
                     <Border Width="6"/>
-                    <Button Content="남자리 셀" Command="{Binding LoadMaleCellCommand}"/>
-                    <Button Content="✕" Command="{Binding ClearMaleCellCommand}" IsEnabled="{Binding HasMaleCell}" Padding="7,4"/>
-                    <Border Width="6"/>
-                    <Button Content="여자리 셀" Command="{Binding LoadFemaleCellCommand}"/>
-                    <Button Content="✕" Command="{Binding ClearFemaleCellCommand}" IsEnabled="{Binding HasFemaleCell}" Padding="7,4"/>
-                    <Border Width="6"/>
+                    <CheckBox Content="남녀 색 구분" IsChecked="{Binding GenderColors}" VerticalAlignment="Center"
+                              ToolTip.Tip="켜면 좌석을 남/여 색으로 구분하고 남자리·여자리 셀 이미지를 쓸 수 있습니다. 끄면 모든 칸이 한 가지 배경으로 통일됩니다."/>
+                    <Border Width="6" IsVisible="{Binding GenderColors}"/>
+                    <Button Content="남자리 셀" Command="{Binding LoadMaleCellCommand}" IsVisible="{Binding GenderColors}"/>
+                    <Button Content="✕" Command="{Binding ClearMaleCellCommand}" IsEnabled="{Binding HasMaleCell}"
+                            IsVisible="{Binding GenderColors}" Padding="7,4"/>
+                    <Border Width="6" IsVisible="{Binding GenderColors}"/>
+                    <Button Content="여자리 셀" Command="{Binding LoadFemaleCellCommand}" IsVisible="{Binding GenderColors}"/>
+                    <Button Content="✕" Command="{Binding ClearFemaleCellCommand}" IsEnabled="{Binding HasFemaleCell}"
+                            IsVisible="{Binding GenderColors}" Padding="7,4"/>
+                    <Border Width="6" IsVisible="{Binding GenderColors}"/>
                     <CheckBox Content="셀 투명 배경" IsChecked="{Binding TransparentCells}" VerticalAlignment="Center"
-                              IsEnabled="{Binding HasAnyCellImage}"
+                              IsVisible="{Binding GenderColors}" IsEnabled="{Binding HasAnyCellImage}"
                               ToolTip.Tip="'남자리 셀'·'여자리 셀' 이미지를 넣었을 때만 쓰는 옵션입니다. 켜면 카드 배경·테두리·모서리 자르기 없이 이미지 모양 그대로 나오고, 불투명 이미지는 모서리 단색 배경을 자동으로 지웁니다."/>
                 </StackPanel>
 
@@ -84,68 +89,13 @@
             </WrapPanel>
         </Border>
 
-        <!-- 미리보기 -->
-        <Border Grid.Row="1" Background="{Binding PreviewBackground}" CornerRadius="8" BorderBrush="#DDD"
+        <!-- 미리보기 — 저장될 PNG와 같은 비주얼을 그대로 띄운다 -->
+        <Border Grid.Row="1" Background="#EDEEF0" CornerRadius="8" BorderBrush="#DDD"
                 BorderThickness="1" ClipToBounds="True">
-            <Grid>
-            <Image Source="{Binding PreviewBackgroundImage}" Stretch="UniformToFill"
-                   IsVisible="{Binding HasBackground}"/>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" Padding="16">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Border Background="#2E3B2E" CornerRadius="4" Padding="6" Margin="0,0,0,10"
-                            HorizontalAlignment="Center" Width="240" IsVisible="{Binding BoardAtTop}">
-                        <TextBlock Text="칠판 (앞)" Foreground="#CFE8CF" HorizontalAlignment="Center" FontSize="12"/>
-                    </Border>
-                    <ItemsControl ItemsSource="{Binding PreviewSections}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/></ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="vm:SeatSectionViewModel">
-                                <StackPanel Margin="10,0">
-                                    <TextBlock Text="{Binding Title}" HorizontalAlignment="Center"
-                                               Foreground="#888" FontSize="12" Margin="0,0,0,4"/>
-                                    <ItemsControl ItemsSource="{Binding Rows}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate DataType="vm:SeatRowViewModel">
-                                                <ItemsControl ItemsSource="{Binding Seats}">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate DataType="vm:SeatSlotViewModel">
-                                                            <Border Background="{Binding Background}"
-                                                                    BorderBrush="{Binding Border}" BorderThickness="{Binding BorderThickness}"
-                                                                    CornerRadius="8" Margin="{Binding Margin}" Width="92" Height="58"
-                                                                    ClipToBounds="{Binding CellClip}">
-                                                                <Grid>
-                                                                    <Image Source="{Binding CellImage}" Stretch="{Binding CellStretch}"
-                                                                           IsVisible="{Binding HasCellImage}"/>
-                                                                    <StackPanel VerticalAlignment="Center">
-                                                                        <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
-                                                                                   Foreground="{Binding Foreground}" HorizontalAlignment="Center"/>
-                                                                        <TextBlock Text="{Binding SubText}" FontSize="10"
-                                                                                   Foreground="{Binding Foreground}" HorizontalAlignment="Center"/>
-                                                                    </StackPanel>
-                                                                </Grid>
-                                                            </Border>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Border Background="#2E3B2E" CornerRadius="4" Padding="6" Margin="0,10,0,0"
-                            HorizontalAlignment="Center" Width="240" IsVisible="{Binding BoardAtBottom}">
-                        <TextBlock Text="칠판 (앞)" Foreground="#CFE8CF" HorizontalAlignment="Center" FontSize="12"/>
-                    </Border>
-                </StackPanel>
+                <ContentControl Content="{Binding PreviewChart}"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </ScrollViewer>
-            </Grid>
         </Border>
 
         <TextBlock Grid.Row="2" Text="{Binding Status}" Foreground="Gray" FontSize="12" Margin="2,8,0,0" TextWrapping="Wrap"/>

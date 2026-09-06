@@ -11,7 +11,8 @@ namespace SeatShuffler.ViewModels;
 public static class ChartBuilder
 {
     public static List<SeatSectionViewModel> Build(ChartSnapshot snap, ChartSkin skin, bool flip,
-        Bitmap? maleCell = null, Bitmap? femaleCell = null, bool transparentCells = false)
+        Bitmap? maleCell = null, Bitmap? femaleCell = null, bool transparentCells = false,
+        bool genderColors = true)
     {
         var cfg = snap.Config;
         var byPos = new Dictionary<(int, int, int), ChartSeat>();
@@ -48,17 +49,19 @@ public static class ChartBuilder
                     Gender? zone = snap.GenderSeats.TryGetValue(pos, out var zg) ? zg : null;
                     if (byPos.TryGetValue((s, r, c), out var seat))
                     {
-                        var cell = seat.Gender switch
+                        // 색 구분을 끄면 남/여 셀 이미지도 쓰지 않고 한 가지 배경으로 통일한다.
+                        var cell = !genderColors ? null : seat.Gender switch
                         {
                             Gender.Male => maleCell,
                             Gender.Female => femaleCell,
                             _ => null,
                         };
+                        var seatGender = genderColors ? seat.Gender : Gender.Unspecified;
                         bool transparent = transparentCells && cell is not null;
                         row.Seats.Add(new SeatSlotViewModel
                         {
                             Position = pos, Name = seat.Name, SubText = seat.SubText,
-                            Background = transparent ? Brushes.Transparent : skin.SeatBrush(seat.Gender, false),
+                            Background = transparent ? Brushes.Transparent : skin.SeatBrush(seatGender, false),
                             Border = transparent ? Brushes.Transparent : skin.SeatBorder,
                             BorderThickness = transparent ? new Thickness(0) : new Thickness(1),
                             Foreground = skin.SeatForeground,
@@ -74,7 +77,7 @@ public static class ChartBuilder
                             Position = pos,
                             Name = zone switch { Gender.Male => "남자리", Gender.Female => "여자리", _ => "빈자리" },
                             SubText = "",
-                            Background = zone is null ? skin.VacantSeat : skin.SeatBrush(zone.Value, false),
+                            Background = zone is null || !genderColors ? skin.VacantSeat : skin.SeatBrush(zone.Value, false),
                             Border = skin.SeatBorder, Foreground = skin.SeatSubForeground,
                             Margin = margin,
                         });

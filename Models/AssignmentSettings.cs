@@ -53,6 +53,9 @@ public sealed class AssignmentSettings
     /// <summary>셀 이미지를 투명 배경으로(테두리·둥근클립 없이 이미지 모양 그대로).</summary>
     public bool TransparentCells { get; set; }
 
+    /// <summary>좌석을 남/여 색으로 구분. 끄면 모든 칸이 한 가지 색이고 셀 이미지도 쓰지 않는다.</summary>
+    public bool GenderColors { get; set; } = true;
+
     /// <summary>출력에 '칠판(앞)' 표시(배경과 안 맞으면 끌 수 있음).</summary>
     public bool ShowBoard { get; set; } = true;
 }

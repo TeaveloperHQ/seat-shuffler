@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -45,9 +46,10 @@ public partial class DecorateViewModel : ViewModelBase
     private bool _showBoard = true;
 
     [ObservableProperty] private bool _transparentCells;
+    [ObservableProperty] private bool _genderColors = true;
     [ObservableProperty] private string _status = "";
-    [ObservableProperty] private IBrush _previewBackground = Brushes.White;
-    [ObservableProperty] private Bitmap? _previewBackgroundImage;
+    /// <summary>PNG로 저장될 것과 똑같은 좌석표 비주얼(같은 빌더로 만든다).</summary>
+    [ObservableProperty] private Control? _previewChart;
     [ObservableProperty] private bool _hasBackground;
 
     [ObservableProperty]
@@ -65,7 +67,6 @@ public partial class DecorateViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
     private bool _canExport;
 
-    public ObservableCollection<SeatSectionViewModel> PreviewSections { get; } = new();
 
     // 칠판 표시 + 교탁 기준이면 아래쪽에(출력 PNG와 동일).
     public bool BoardAtTop => ShowBoard && !FlipForTeacher;
@@ -90,6 +91,7 @@ public partial class DecorateViewModel : ViewModelBase
         FlipForTeacher = _state.Settings.FlipForTeacher;
         ShowBoard = _state.Settings.ShowBoard;
         TransparentCells = _state.Settings.TransparentCells;
+        GenderColors = _state.Settings.GenderColors;
         ReloadImages();
         _loading = false;
     }
@@ -113,7 +115,6 @@ public partial class DecorateViewModel : ViewModelBase
         }
         _maleCellBitmap = male;
         _femaleCellBitmap = female;
-        PreviewBackgroundImage = _backgroundBitmap;
         HasBackground = _backgroundBitmap is not null;
         HasMaleCell = _maleCellBitmap is not null;
         HasFemaleCell = _femaleCellBitmap is not null;
@@ -151,6 +152,7 @@ public partial class DecorateViewModel : ViewModelBase
         _state.Settings.FlipForTeacher = FlipForTeacher;
         _state.Settings.ShowBoard = ShowBoard;
         _state.Settings.TransparentCells = TransparentCells;
+        _state.Settings.GenderColors = GenderColors;
         _state.SaveConstraints();
     }
 
@@ -188,26 +190,28 @@ public partial class DecorateViewModel : ViewModelBase
 
     partial void OnSelectedSkinChanged(ChartSkin? value) { SaveSettings(); RenderPreview(); }
     partial void OnFlipForTeacherChanged(bool value) { SaveSettings(); RenderPreview(); }
-    partial void OnShowBoardChanged(bool value) { SaveSettings(); }
+    partial void OnShowBoardChanged(bool value) { SaveSettings(); RenderPreview(); }
     partial void OnTransparentCellsChanged(bool value) { SaveSettings(); ReloadImages(); RenderPreview(); }
+    partial void OnGenderColorsChanged(bool value) { SaveSettings(); RenderPreview(); }
     partial void OnSelectedSourceChanged(ChartSource? value) { if (!_loading) RenderPreview(); }
 
     private void RenderPreview()
     {
         var skin = SelectedSkin ?? ChartSkin.Presets[0];
-        PreviewBackground = skin.PageBackground;
-
-        PreviewSections.Clear();
         var snap = SelectedSource?.Snapshot;
         if (snap is null)
         {
+            PreviewChart = null;
             CanExport = false;
             Status = "'배정' 탭에서 배정하거나, 위에서 기록을 선택하세요.";
             return;
         }
 
-        foreach (var sec in ChartBuilder.Build(snap, skin, FlipForTeacher, _maleCellBitmap, _femaleCellBitmap, TransparentCells))
-            PreviewSections.Add(sec);
+        // 저장(PNG)과 완전히 같은 경로로 만든다 — 화면에 보이는 그대로 저장된다.
+        var sections = ChartBuilder.Build(snap, skin, FlipForTeacher, _maleCellBitmap, _femaleCellBitmap,
+            TransparentCells, GenderColors);
+        PreviewChart = UiServices.BuildChart(UiServices.ChartTitle, sections, skin, FlipForTeacher,
+            _backgroundBitmap, ShowBoard);
         CanExport = true;
         Status = FlipForTeacher
             ? "교탁 기준(좌석 거울반전). '출력'으로 PNG 저장 후 인쇄하세요."
@@ -222,8 +226,8 @@ public partial class DecorateViewModel : ViewModelBase
         var snap = SelectedSource?.Snapshot;
         if (snap is null) return;
         await _ui.ExportSeatChartAsync(
-            "자리 배치표", snap, SelectedSkin ?? ChartSkin.Presets[0], FlipForTeacher,
-            _backgroundBitmap, _maleCellBitmap, _femaleCellBitmap, TransparentCells, ShowBoard);
+            UiServices.ChartTitle, snap, SelectedSkin ?? ChartSkin.Presets[0], FlipForTeacher,
+            _backgroundBitmap, _maleCellBitmap, _femaleCellBitmap, TransparentCells, ShowBoard, GenderColors);
     }
 
     /// <summary>탭 진입 시 호출 — 소스 목록(최신 기록 포함)·미리보기 갱신.</summary>
