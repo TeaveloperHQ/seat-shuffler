@@ -33,12 +33,16 @@ public interface IDialogService
     Task<string?> SaveSpreadsheetAsync(string suggestedFileName, Action<Stream> write);
 }
 
+/// <summary>좌석표를 그릴 때 필요한 옵션 묶음(미리보기와 인쇄가 같은 값을 쓴다).</summary>
+public sealed record ChartRenderOptions(
+    ChartSnapshot Snapshot, ChartSkin Skin, bool Flip,
+    Bitmap? Background, Bitmap? MaleCell, Bitmap? FemaleCell,
+    bool TransparentCells, bool ShowBoard, bool GenderColors, string? FontFamily);
+
 public interface IExportService
 {
-    /// <summary>좌석표를 스킨·교탁반전·배경/셀 이미지 적용해 PNG로 저장하고 기본 뷰어로 연다.</summary>
-    Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
-        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells, bool showBoard,
-        bool genderColors, string? fontFamily);
+    /// <summary>인쇄 대화상자를 띄워 좌석표를 인쇄한다. 보낸 프린터 이름(취소하면 null)을 돌려준다.</summary>
+    string? PrintSeatChart(string title, ChartRenderOptions options);
 
     /// <summary>커스텀 배경 이미지 파일을 선택해 로컬 경로를 돌려준다.</summary>
     Task<string?> PickImageAsync();
@@ -52,7 +56,7 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
 {
     public TopLevel? Owner { get; set; }
 
-    /// <summary>좌석표 제목 — 미리보기와 저장본이 같아야 하므로 한 곳에서 관리.</summary>
+    /// <summary>좌석표 제목 — 미리보기와 인쇄물이 같아야 하므로 한 곳에서 관리.</summary>
     public const string ChartTitle = "자리 배치표";
 
     /// <summary>글꼴을 고르지 않았을 때 쓰는 기본 글꼴(설치된 것 중 먼저 잡히는 순서).</summary>
@@ -82,43 +86,90 @@ public sealed class UiServices : IClipboardService, IDialogService, IFolderServi
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
-    public async Task ExportSeatChartAsync(string title, ChartSnapshot snapshot, ChartSkin skin, bool flip,
-        Bitmap? background, Bitmap? maleCell, Bitmap? femaleCell, bool transparentCells, bool showBoard,
-        bool genderColors, string? fontFamily)
+    /// <summary>미리보기와 같은 함수로 좌석표 비주얼을 만들고 크기를 확정한다 → 화면과 인쇄물이 일치한다.</summary>
+    private static (Control Visual, Size Size)? LayoutChart(string title, ChartRenderOptions o)
     {
-        var sp = Owner?.StorageProvider;
-        if (sp is null) return;
-
-        // 미리보기와 같은 함수로 만든 비주얼을 그대로 렌더 → 화면과 저장본이 일치한다.
-        var sections = ChartBuilder.Build(snapshot, skin, flip, maleCell, femaleCell, transparentCells, genderColors);
-        var visual = BuildChart(title, sections, skin, flip, background, showBoard, fontFamily);
+        var sections = ChartBuilder.Build(o.Snapshot, o.Skin, o.Flip, o.MaleCell, o.FemaleCell,
+            o.TransparentCells, o.GenderColors);
+        var visual = BuildChart(title, sections, o.Skin, o.Flip, o.Background, o.ShowBoard, o.FontFamily);
         visual.Measure(Size.Infinity);
         visual.Arrange(new Rect(visual.DesiredSize));
         var size = visual.DesiredSize;
-        if (size.Width < 1 || size.Height < 1) return;
+        return size.Width < 1 || size.Height < 1 ? null : (visual, size);
+    }
 
-        const double scale = 2.0; // 인쇄용 선명도
+    private static RenderTargetBitmap Render(Control visual, Size size, double scale)
+    {
         var px = new PixelSize(
             Math.Max(1, (int)Math.Ceiling(size.Width * scale)),
             Math.Max(1, (int)Math.Ceiling(size.Height * scale)));
-        using var rtb = new RenderTargetBitmap(px, new Vector(96 * scale, 96 * scale));
+        var rtb = new RenderTargetBitmap(px, new Vector(96 * scale, 96 * scale));
         rtb.Render(visual);
+        return rtb;
+    }
 
-        var file = await sp.SaveFilePickerAsync(new FilePickerSaveOptions
+    public string? PrintSeatChart(string title, ChartRenderOptions options)
+    {
+        if (LayoutChart(title, options) is not { } layout)
+            throw new InvalidOperationException("인쇄할 좌석표가 없습니다.");
+
+        // 어느 프린터를 고를지는 대화상자에서 정해지므로, 해상도는 기본 프린터 용지를 기준으로 잡는다.
+        using var rtb = Render(layout.Visual, layout.Size, PrintScale(layout.Size, WindowsPrinting.DefaultPrinter()));
+        var owner = Owner?.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero; // 대화상자를 앱 창에 모달로 띄운다
+        return WindowsPrinting.Print(ToRgbOverWhite(rtb), rtb.PixelSize.Width, rtb.PixelSize.Height, title, owner);
+    }
+
+    /// <summary>
+    /// 용지 여백 안쪽에 '딱 맞게' 넣었을 때의 인쇄 크기를 먼저 구하고,
+    /// 그 크기에서 300dpi가 나오도록 렌더 배율을 정한다 → 늘리든 줄이든 흐려지지 않는다.
+    /// </summary>
+    private static double PrintScale(Size size, string? printer)
+    {
+        var (pageW, pageH) = WindowsPrinting.PaperSize(printer);
+        double w = size.Width * PageLayout.DipToPt, h = size.Height * PageLayout.DipToPt;
+        var rotated = PageLayout.PreferRotated(w, h, pageW, pageH);
+        var fit = rotated
+            ? PageLayout.FitScale(h, w, pageW, pageH, rotated: true)
+            : PageLayout.FitScale(w, h, pageW, pageH, rotated: false);
+        return Math.Clamp(fit * PageLayout.DipToPt * PageLayout.PrintDpi / 72.0, 1.0, 8.0);
+    }
+
+    /// <summary>프린터로 보낼 그림은 투명도를 쓰지 않으므로 흰 종이 위에 합성해 RGB 3바이트로 편다.</summary>
+    private static unsafe byte[] ToRgbOverWhite(RenderTargetBitmap bitmap)
+    {
+        int w = bitmap.PixelSize.Width, h = bitmap.PixelSize.Height, stride = w * 4;
+        if ((long)stride * h > int.MaxValue) throw new InvalidOperationException("좌석표가 너무 커서 인쇄할 수 없습니다.");
+
+        var bgra = new byte[stride * h];
+        fixed (byte* p = bgra)
+            bitmap.CopyPixels(new PixelRect(0, 0, w, h), (IntPtr)p, bgra.Length, stride);
+
+        // 렌더 타깃은 BGRA·미리 곱해진 알파가 기본이지만, 플랫폼에 따라 다를 수 있어 실제 값을 본다.
+        var rgbaOrder = bitmap.Format == Avalonia.Platform.PixelFormat.Rgba8888;
+        var premultiplied = bitmap.AlphaFormat != Avalonia.Platform.AlphaFormat.Unpremul;
+
+        var rgb = new byte[w * h * 3];
+        for (int i = 0, o = 0; i < bgra.Length; i += 4, o += 3)
         {
-            Title = "자리표 PNG 저장",
-            SuggestedFileName = $"자리배치_{DateTime.Now:yyyyMMdd_HHmm}.png",
-            DefaultExtension = "png",
-            FileTypeChoices = new[] { new FilePickerFileType("PNG 이미지") { Patterns = new[] { "*.png" } } },
-        });
-        if (file is null) return;
-
-        await using (var stream = await file.OpenWriteAsync())
-            rtb.Save(stream);
-
-        var path = file.TryGetLocalPath();
-        if (path is not null && Owner?.Launcher is { } launcher)
-            await launcher.LaunchFileInfoAsync(new FileInfo(path));
+            byte c0 = bgra[i], c1 = bgra[i + 1], c2 = bgra[i + 2], a = bgra[i + 3];
+            byte r = rgbaOrder ? c0 : c2, g = c1, b = rgbaOrder ? c2 : c0;
+            if (a != 255)
+            {
+                var bg = 255 - a;                                    // 흰 배경이 비치는 정도
+                if (premultiplied)
+                {
+                    r = (byte)Math.Min(255, r + bg); g = (byte)Math.Min(255, g + bg); b = (byte)Math.Min(255, b + bg);
+                }
+                else
+                {
+                    r = (byte)((r * a + 255 * bg) / 255);
+                    g = (byte)((g * a + 255 * bg) / 255);
+                    b = (byte)((b * a + 255 * bg) / 255);
+                }
+            }
+            rgb[o] = r; rgb[o + 1] = g; rgb[o + 2] = b;
+        }
+        return rgb;
     }
 
     public static Control BuildChart(string title, IReadOnlyList<SeatSectionViewModel> sections,

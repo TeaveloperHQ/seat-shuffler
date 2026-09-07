@@ -61,7 +61,7 @@
                     <TextBlock Text="글꼴" VerticalAlignment="Center" Foreground="#5A6270"/>
                     <ComboBox ItemsSource="{Binding Fonts}" SelectedItem="{Binding SelectedFont}"
                               MinWidth="160" MaxDropDownHeight="360"
-                              ToolTip.Tip="좌석표(미리보기·저장 PNG)에 쓸 글꼴입니다. 한글이 없는 글꼴을 골라도 한글은 자동으로 대체 글꼴로 나옵니다.">
+                              ToolTip.Tip="좌석표(미리보기·인쇄물)에 쓸 글꼴입니다. 한글이 없는 글꼴을 골라도 한글은 자동으로 대체 글꼴로 나옵니다.">
                         <ComboBox.ItemTemplate>
                             <DataTemplate DataType="vm:ChartFontOption">
                                 <TextBlock Text="{Binding Display}" FontFamily="{Binding Preview}"/>
@@ -99,19 +99,27 @@
                 <CheckBox Content="칠판 표시" IsChecked="{Binding ShowBoard}" VerticalAlignment="Center" Margin="0,4,10,4"/>
                 <CheckBox Content="교탁 기준" IsChecked="{Binding FlipForTeacher}" VerticalAlignment="Center" Margin="0,4,10,4"
                           ToolTip.Tip="좌석을 거울반전하고 칠판을 아래로(교탁에서 본 방향)"/>
-                <Button Content="출력(PNG)" Command="{Binding ExportCommand}"
-                        Padding="18,7" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,4"/>
+                <Button Content="인쇄" Command="{Binding PrintCommand}"
+                        Padding="18,7" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,4"
+                        ToolTip.Tip="윈도우 인쇄 대화상자를 엽니다. 프린터·매수를 고르면 A4 한 장에 맞춰 인쇄합니다(용지가 세로면 자동으로 눕혀서)."/>
 
             </WrapPanel>
         </Border>
 
-        <!-- 미리보기 — 저장될 PNG와 같은 비주얼을 그대로 띄운다 -->
+        <!-- 미리보기 — 인쇄될 A4 가로 한 장 그대로(같은 여백·같은 맞춤 방식) -->
         <Border Grid.Row="1" Background="#EDEEF0" CornerRadius="8" BorderBrush="#DDD"
-                BorderThickness="1" ClipToBounds="True">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" Padding="16">
-                <ContentControl Content="{Binding PreviewChart}"
-                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </ScrollViewer>
+                BorderThickness="1" ClipToBounds="True" Padding="16">
+            <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <!-- 종이 한 장(A4 가로). 크기 단위는 pt지만 비율만 쓰이므로 화면에서는 통째로 확대·축소된다. -->
+                <Border Width="{Binding PageWidth}" Height="{Binding PageHeight}"
+                        Background="White" BorderBrush="#C8CBD0" BorderThickness="1"
+                        BoxShadow="0 2 10 0 #33000000">
+                    <!-- 여백 안쪽에 좌석표를 비율 그대로 꽉 채운다 = 인쇄 때와 같은 계산 -->
+                    <Viewbox Stretch="Uniform" Margin="{Binding PageMargin}">
+                        <ContentControl Content="{Binding PreviewChart}"/>
+                    </Viewbox>
+                </Border>
+            </Viewbox>
         </Border>
 
         <TextBlock Grid.Row="2" Text="{Binding Status}" Foreground="Gray" FontSize="12" Margin="2,8,0,0" TextWrapping="Wrap"/>
